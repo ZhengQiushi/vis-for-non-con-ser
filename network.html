@@ -122,7 +122,7 @@
         */
         this.edge1 = edge1;
         this.edge2 = edge2;
-        this.id = 0;
+        this.id = -1;
 
         /* 函数声明：获取数据包的边位置
             返回值: 边位置数组[]
@@ -139,7 +139,10 @@
         this.set_pos = function(edge1, edge2){
             this.edge1 = edge1
             this.edge2 = edge2
-            this.id = global_pack_id ++;
+            if(this.id < 0){
+                this.id = global_pack_id ++;
+            }
+            
         }
     }
 
@@ -170,7 +173,7 @@
         */
         this.start = start
         this.terminal = terminal
-        this.limit_packet = max_data_packet_cnt;
+        this.limit_packet = max_data_packet_cnt + 1;
         this.route_vertex = []; // 目的地？
         this.route_table = []
         this.route_edge = []; // route_edge[index][....] 下标的index的路由伸出去的点
@@ -251,8 +254,10 @@
             var tmp = des_vertex;
 
             // 从目标点倒过来找，下一个位置
-            while(visit[tmp] == 0)
+            while(visit[tmp] == 0){
                 tmp = this.least_pos[tmp];
+                console.log("cnm")
+            }
             
             return parseInt(tmp, 10)
         }
@@ -606,7 +611,7 @@
     route_position = [new vis_pos(0, 0),
                       new vis_pos(100, 200),
                       new vis_pos(300, 150), 
-                      new vis_pos(300, 300),
+                      new vis_pos(350, 400),
                       new vis_pos(500, 150),
                       new vis_pos(700, 200),
                       new vis_pos(900, 200)];
@@ -614,7 +619,7 @@
     pack_node_position = [];               
     pack_node_position[12] = new vis_pos(125, 100);
 
-    var graph = new myGraph(1, 6, 3)
+    var graph = new myGraph(1, 6, 4)
     graph.init()
     graph.update_route_table();
 
@@ -701,66 +706,57 @@
     }
 
     function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
-        var x = vis_pos[from*10 + to].x;
-        var y = vis_pos[from*10 + to].y;
+        var x = (vis_pos[from].x + vis_pos[to].x) / 2;
+        var y = (vis_pos[from].y + vis_pos[to].y) / 2;
         
-
         var cur_all_pack = my_graph.cur_all_pack_pos;
 
         var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
         console.log(cur_edge_pack)
-        console.log("!!!!")
+
         var cur_pack_name = "edge_" + from + "-" + to;
-
-
 
         var from_route_name =  "router" + String.fromCharCode(65 + from - 1);
         var to_route_name = "router" + String.fromCharCode(65 + to - 1);
 
         var render = function(r, n) {
-                /* the Raphael set is obligatory, containing all you want to display */
-                
-                /* custom objects go here */
-                
                 var set = r.set()
                     .push(r.rect(n.point[0]-30, n.point[1]-13, 10, 10).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y }))
                     .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px",  "x": x + 10,"y": y - 10}));
-                    
+                
+                set.items[1].node.setAttribute("class", cur_pack_name+"_num");
+                // console.log("!!!!")
+                // console.log(set.items[1].node)
                 /* custom tooltip attached to the set */
-
                 var rect_ = r.rect(0, 0, 80, 100).attr({"fill": "#fec", "stroke-width": 1, r : "9px", "x": -50, "y": -100 })
 
                 var tooltip = r.set().push(rect_);
                 /*添加包节点内容*/
-                var total_table_contents = ""
-                for(let i = 1 ; i <= cur_vertex_node_num; i ++){
-                    var cur_line = "fuck"//" " + String.fromCharCode(65 + i - 1) + ": " + String.fromCharCode(65 + cur_route_table.get_route(i) - 1) +"\n";
-                    total_table_contents += cur_line;
+                var total_pack_contents = ""
+                for(let i = 1 ; i <= cur_edge_pack.length; i ++){
+                    var cur_line = " " + cur_edge_pack[i] +"\n";
+                    total_pack_contents += cur_line;
                 };
-                var text_ = r.text(n.point[0], n.point[1] + 20, total_table_contents).attr({"x": -25, "y": -50 })         
+                var text_ = r.text(n.point[0], n.point[1] + 20, total_pack_contents).attr({"x": -25, "y": -50 })         
                 tooltip.push(text_)
 
                 tooltip.items[tooltip.items.length - 1].node.setAttribute("class", cur_pack_name);
 
                 set.items[0].tooltip(tooltip)
-                set.items.forEach(function(el) {
-                //     /*添加底色*/
-
-                    var cur_node = el.node;
-                    console.log(cur_node.attributes);
-                    console.log(cur_node.childNodes);
-                    //el.node.setAttribute("id", cur_pack_name)
-                    cur_node.setAttribute("class", "pack_edge")
-                });
+                // set.items.forEach(function(el) {
+                // //     /*添加底色*/
+                //     var cur_node = el.node;
+                //     // console.log(cur_node.attributes);
+                //     // console.log(cur_node.childNodes);
+                //     //cur_node.setAttribute("class", "pack_edge")
+                // });
                 return set;
             };
 
         
 
         vis_g.addNode(cur_pack_name, {
-            label : cur_pack_name,
-            /* filling the shape with a color makes it easier to be dragged */
-            /* arguments: r = Raphael object, n : node object */
+            label : "num:" + cur_edge_pack.length,
             render : render
         });
 
@@ -775,10 +771,24 @@
         vis_g.addEdge(to_route_name, cur_pack_name);
     }
     
-    function update_pack_edge(from, to){
+    function update_pack_edge(from, to, my_graph){
+        var cur_all_pack = my_graph.cur_all_pack_pos;
+
+        var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
+
+        /*添加包节点内容*/
+        var total_pack_contents = ""
+        for(let i = 0 ; i < cur_edge_pack.length; i ++){
+            var ele = cur_edge_pack[i].get_pos();
+            var cur_line = " PAK: " + cur_edge_pack[i].id + "( from " + String.fromCharCode(65 + ele[0] - 1) +")" +"\n";
+            total_pack_contents += cur_line;
+        };
+
         var cur_pack_name = "edge_" + from + "-" + to;
-        $("." + cur_pack_name).text("fuck");
-        console.log($("." + cur_pack_name).text());
+        $("." + cur_pack_name).html("<tspan>" + total_pack_contents + "</tspan>");
+        $("." + cur_pack_name + "_num").html("<tspan>" + "num: " + cur_edge_pack.length + "</tspan>");
+
+        //console.log($("." + cur_pack_name).text());
     }
 
 
@@ -796,7 +806,13 @@
     add_router(vis_g, 6, graph, route_position);
 
     
-    add_pack_edge(vis_g, 1, 2, graph, pack_node_position);
+    add_pack_edge(vis_g, 1, 2, graph, route_position);
+    add_pack_edge(vis_g, 1, 3, graph, route_position);
+    add_pack_edge(vis_g, 2, 4, graph, route_position);
+    add_pack_edge(vis_g, 3, 4, graph, route_position);
+    add_pack_edge(vis_g, 3, 5, graph, route_position);
+    add_pack_edge(vis_g, 4, 5, graph, route_position);
+    add_pack_edge(vis_g, 5, 6, graph, route_position);
 
     // vis_g.deleteNode("routerB");
 
@@ -842,9 +858,15 @@
 
         // add_router(vis_g, 6, graph, route_position);
 
-        update_pack_edge(1, 2);
 
-        renderer.draw();
+        update_pack_edge( 1, 2, graph);
+        update_pack_edge( 1, 3, graph);
+        update_pack_edge( 2, 4, graph);
+        update_pack_edge( 3, 4, graph);
+        update_pack_edge( 3, 5, graph);
+        update_pack_edge( 4, 5, graph);
+        update_pack_edge( 5, 6, graph);
+        //renderer.draw();
 
     })
 </script>
