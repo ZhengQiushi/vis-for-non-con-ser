@@ -60,6 +60,8 @@ Graph.prototype = {
     // ADD BY TRUTH
     deleteNode: function(id){
         // delet a node
+        console.log(this.nodes)
+        console.log(id)
         if(this.nodes[id] == undefined) {
             return;
         }
@@ -72,17 +74,44 @@ Graph.prototype = {
             }
             
             for(let i=0;i<this.edges.length;i++){
-                
+                // update the edges list!
                 if(this.edges[i].source==this.nodes[id] || this.edges[i].target ==this.nodes[id]){
+                    // remove the edge!
+                    if(this.edges[i].connection!=undefined)
+                        this.edges[i].connection.fg.remove();
                     this.edges.splice(i,1)
                     i--;
                 } 
             }
 
+            // delete this node...
+            for(let i = 0 ; i < this.nodes[id].shape.length; i ++ ){
+                this.nodes[id].shape[i].remove();
+            }
+
+            // delete all the edges and delete the other end of the edge
+            var cur_edges = this.nodes[id].edges;
+            for(let i = 0; i < cur_edges.length; i ++ ){
+
+                var other_end_node = this.nodes[cur_edges[i].target.id];
+                //delete current node in the other end 
+                for(let j = 0 ; j < other_end_node.edges.length; j ++ ){
+                    if(other_end_node.edges[j].target.id == id){
+                        // console.log(id);
+                        other_end_node.edges.splice(j,1)
+                        j --;
+                    }
+                    
+                }
+            }
+
+
+
             delete this.nodes[id];
             return;
         }
     },
+
     // TODO rename style to content
     addEdge: function(source, target, style) {
         var s = this.addNode(source);
@@ -97,6 +126,7 @@ Graph.prototype = {
             t.edges.push(backedge);
         }
     },
+
     deleteEdge: function(source, target, style) {
         var s = this.addNode(source);
         var t = this.addNode(target);
@@ -117,6 +147,7 @@ Graph.prototype = {
 
 
     },
+
     /*
      * Preserve a copy of the graph state (nodes, positions, ...)
      * @comment     a comment describing the state
@@ -178,6 +209,8 @@ Graph.Renderer.Raphael = function(element, graph, width, height) {
         selfRef.isDrag = this;
         this.set && this.set.animate({"fill-opacity": .1}, 200) && this.set.toFront();
         e.preventDefault && e.preventDefault();
+        
+        
     };
 
     document.onmousemove = function (e) {
@@ -231,7 +264,9 @@ Graph.Renderer.Raphael.prototype = {
     },
 
     drawNode: function(node) {
-        
+        /*
+         * all add into the node.shape ? 
+         */
         var point = this.translate([node.layoutPosX, node.layoutPosY]);
         node.point = point;
         
@@ -261,6 +296,7 @@ Graph.Renderer.Raphael.prototype = {
         /* reference to the node an element belongs to, needed for dragging all elements of a node */
         shape.items.forEach(function(item){ item.set = shape; item.node.style.cursor = "move"; });
         shape.mousedown(this.dragger);
+
         node.shape = shape;
     },
     drawEdge: function(edge) {

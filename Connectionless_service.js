@@ -1,6 +1,8 @@
     /* 边类 定义边的到达方和边权 */
     /* 边权初始设置为1 代表该边无数据包经过 */
     /* 若有数据包经过 则边权+1 */
+
+
     function ArcEdge(to, weight)
     {
         /* 成员变量 
@@ -41,6 +43,8 @@
 
     /* 路由表类 */
     var max_vertex_node = 1000;
+    var cur_vertex_node_num = 6;
+
     function RouteTable()
     {
         /* 成员变量
@@ -55,37 +59,51 @@
                 this.route_path.push(0);
         }
 
-        /* 函数声明：修改某点路由信息 
-            route_vertex: 要修改路由的点
-            path_value:所设置的路由路径
-        */
+
         this.set_route = function(route_vertex, path_value){
+            /* 函数声明：修改某点路由信息 
+                route_vertex: 要修改路由的点
+                path_value:所设置的路由路径
+            */
             this.route_path[route_vertex] = path_value;
         }
 
-        /* 函数声明：查询某点路由信息 
-            des_vertex: 所要到达的路由点
-        */
+
         this.get_route = function(des_vertex){
+            /* 函数声明：查询某点路由信息 
+                des_vertex: 所要到达的路由点
+            */
             return this.route_path[des_vertex];
         }
     }
 
     /* 数据包位置类 */
     /* 设定数据包从起点移动到终点 */
+    var global_pack_id = 0;
+
+    function find_id_pack(id, pack_set){
+        for(let i = 0 ; i < pack_set.length; i ++ ){
+            if(id == pack_set[i].id){
+                return pack_set[i];
+            }
+        }
+        return [-1, -1, -1]
+    }
+
     function Packet_Pos(edge1, edge2)
     {
         /* 成员变量
-            edge 1-2: 该数据包位于哪两条边之间
+            edge 1-2: 该数据包位于哪两条边之间? 路由之间？
         */
         this.edge1 = edge1;
         this.edge2 = edge2;
+        this.id = global_pack_id ++ ;
 
         /* 函数声明：获取数据包的边位置
             返回值: 边位置数组[]
         */
         this.get_pos = function(){             
-            /* 保证返回的edge1 小于 edge2 */
+            /* 保证返回的edge1 小于 edge2 e.vis_g. [1-2]*/ 
             if(this.edge1 < this.edge2)
                 return [this.edge1, this.edge2]
             return [this.edge2, this.edge1]
@@ -95,12 +113,23 @@
         */
         this.set_pos = function(edge1, edge2){
             this.edge1 = edge1
-            this.edge2 = edge2
+            this.edge2 = edge2            
         }
     }
 
+    function hardCopy (obj) {
+        var newobj = obj.constructor === Array ? [] : {};
+        if(typeof obj !== 'object'){
+            return;
+        }
+        for(var i in obj){
+           newobj[i] = typeof obj[i] === 'object' ? hardCopy(obj[i]) : obj[i];
+        }
+        return newobj
+    }
+
     /* 路由器的无环图 */
-    function Graph(start, terminal, max_data_packet_cnt)
+    function myGraph(start, terminal, max_data_packet_cnt)
     {
         /* 成员变量
             start: 起始顶点
@@ -115,96 +144,156 @@
         */
         this.start = start
         this.terminal = terminal
-        this.limit_packet = max_data_packet_cnt;
-        this.route_vertex = [];
+        this.limit_packet = max_data_packet_cnt + 1;
+        this.route_vertex = []; // 目的地？
         this.route_table = []
-        this.route_edge = [];
-        this.least_pos = []
-        this.packet_pos = []
+        this.route_edge = []; // route_edge[index][....] 下标的index的路由伸出去的点
+        this.least_pos = []; // least[to] = from  -> 记录目标点的起源点
+        this.packet_pos = []; // 所有当前仍然在流动的数据包
         this.init_packet_cnt = 1;
+        this.new_pack_gen = []; // 每轮新增的包
+        this.died_pack = [];  //每轮到达目标地址
 
+        this.cur_edges = []; // 每个都是[1, 2] 1 < 2
         /* 函数声明：初始化图结构
         */
         this.init = function(){
             for(var i = 0; i < max_vertex_node; i++){
                 this.least_pos.push(0);
+                // 初始化
                 this.route_table.push(new RouteTable())
                 this.route_table[this.route_table.length - 1].init();
+                // 某一个路由的所有边？
                 this.route_edge.push([]);
             }
-            for(var i = 1; i <= 6; i++){
+            for(var i = 1; i <= cur_vertex_node_num; i++){
                 this.route_vertex.push(i);
             }
+            /*
+             * A -> 1
+             * B -> 2
+             * C -> 3
+             * D -> 4
+             * E -> 5
+             * F -> 6
+             */
             this.route_edge[1].push(new ArcEdge(2, 1));
             this.route_edge[2].push(new ArcEdge(1, 1));
+            this.cur_edges.push([1,2]);
+
             this.route_edge[1].push(new ArcEdge(3, 1));
             this.route_edge[3].push(new ArcEdge(1, 1));
+            this.cur_edges.push([1,3]);
+
             this.route_edge[2].push(new ArcEdge(4, 1));
             this.route_edge[4].push(new ArcEdge(2, 1));
+            this.cur_edges.push([2,4]);
+
             this.route_edge[3].push(new ArcEdge(4, 1));
             this.route_edge[4].push(new ArcEdge(3, 1));
+            this.cur_edges.push([3,4]);
+
             this.route_edge[3].push(new ArcEdge(5, 1));
             this.route_edge[5].push(new ArcEdge(3, 1));
+            this.cur_edges.push([3,5]);
+
             this.route_edge[4].push(new ArcEdge(5, 1));
             this.route_edge[5].push(new ArcEdge(4, 1));
+            this.cur_edges.push([4,5]);
+
             this.route_edge[5].push(new ArcEdge(6, 1));
             this.route_edge[6].push(new ArcEdge(5, 1));
+            this.cur_edges.push([5,6]);
+
         }
 
-        /* 函数声明：根据pos数组最短路径的信息以及des_vertex 找到front_vertex到des_vertex的出口点
-            des_vertex: 目的地路由信息
-            front_vertex: 起点路由信息
-            返回值: 起点路由信息的出口，若起点位置和终点位置相同 则置-1 若无法找到 则置-1
-        */
+        this.show_route_table = function(route_id){
+            console.log("Table: ", String.fromCharCode(65 + route_id - 1));
+            for(let i = 1 ; i <= this.route_vertex.length; i ++){
+                console.log("  ", String.fromCharCode(65 + i - 1), ": ", 
+                    String.fromCharCode(65 + this.route_table[route_id].get_route(i) - 1))
+            }
+        }
+
         this.find_entry = function(des_vertex, front_vertex)
         {
+            /* 函数声明：根据pos数组最短路径的信息以及des_vertex 找到front_vertex到des_vertex的出口点
+                找出口路由！
+                des_vertex: 目的地路由信息
+                front_vertex: 起点路由信息
+                返回值: 起点路由信息的出口，若起点位置和终点位置相同 则置-1 若无法找到 则置-1
+            */
             if(des_vertex == front_vertex || this.least_pos[des_vertex] == -1)
                 return -1
             var visit = []
             for(var i = 0; i < max_vertex_node; i++)
                 visit.push(0)
+            
             for(var i = 0; i < this.route_edge[front_vertex].length; i++)
+                // 遍历当前路由，能到的全设1 
                 visit[this.route_edge[front_vertex][i].get_to()] = 1;
             
             var tmp = des_vertex;
 
-            while(visit[tmp] == 0)
+            // 从目标点倒过来找，下一个位置
+            while(visit[tmp] == 0){
                 tmp = this.least_pos[tmp];
+                console.log("cnm")
+            }
             
             return parseInt(tmp, 10)
         }
 
-        /* 函数声明：图中数据包移动
-            数据包移动结束后会修改边权
-        */
-        this.data_packet_move = function()
+
+        
+        this.data_packet_move = function(new_send_pack_num)
         {
-            /* 首先对图中存在的包进行移动 */
+            /* 函数声明：图中数据包移动
+                数据包移动结束后会修改边权
+            */
+
+            /* 首先对图中存在的包进行移动（即位置不在原点！） */
             for(var i = 0; i < this.packet_pos.length; i++){
-                var arr = this.packet_pos[i].get_pos()
-                /* 无效的数据包 */
+                
+                var arr = this.packet_pos[i].get_pos() // arr[from，to]
+                /* 无效的数据包，位置在原点！ */
                 if(arr[0] == 0 && arr[1] == 0)
                     continue;
+                
+                /*
+                 * 原来的权重被去除！
+                 */
+                // 正向边
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++)
+                    // 遍历所有从路由[from] 出去的边
                     if(this.route_edge[arr[0]][j].get_to() == arr[1])
+                    // 正好在这个路由的边上！
                         this.route_edge[arr[0]][j].set_weight(this.route_edge[arr[0]][j].get_weight() - 1)
-
+                
+                // 反向边
                 for(var j = 0; j < this.route_edge[arr[1]].length; j++)
                     if(this.route_edge[arr[1]][j].get_to() == arr[0])
                         this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() - 1)
                 
+
                 /* 该包已到达终点 */
                 if(arr[0] == this.terminal || arr[1] == this.terminal){
                     this.packet_pos[i].set_pos(0, 0)
+                    //
+                    this.died_pack.push(i);
                     continue;
                 }
                 
                 /* 使用tmp_arr 记录原位置 */
                 var tmp_arr = [arr[0], arr[1]];
-                arr = [this.route_table[arr[1]].get_route(this.terminal), arr[1]]
                 /* 此时的arr数组中的数据为数据包的新位置*/
+                arr = [this.route_table[arr[1]].get_route(this.terminal), arr[1]]
+                
 
                 /* 更新包移动后的边权 */
+                /*
+                 * 新增边权
+                 */
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++){
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
                         if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet)  // 包阻塞 被滞留  //防止级联阻塞
@@ -226,6 +315,7 @@
                     }
                 } 
             }
+            this.init_packet_cnt = new_send_pack_num;
             /* 然后对起点的数据包进行处理 */
             while(this.init_packet_cnt > 0){
                 var find_ = false
@@ -240,8 +330,10 @@
                                 this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() + 1)
                             }
                         }
+                        var cur_new_pack = new Packet_Pos(this.start, arr[1]);
+                        this.new_pack_gen.push(cur_new_pack.id);
                         /* 更新数据包位置信息 */
-                        this.packet_pos.push(new Packet_Pos(this.start, arr[1]))
+                        this.packet_pos.push(cur_new_pack);
                         /* 更新计数器 */
                         this.init_packet_cnt -= 1
                         find_ = true
@@ -260,6 +352,9 @@
         /* 函数声明：获取所有数据包信息
             返回值：所有有效的数据包位置
         */
+       this.cur_all_pack_pos = [];
+       this.prev_all_pack_pos = [];
+
         this.get_data_packet = function(){
             var res = []
             for(var i = 0; i < this.packet_pos.length; i++){
@@ -270,11 +365,13 @@
             return res
         }
 
-        /* 函数声明：获取某个顶点到其余顶点的最短路径，更新least_pos数组
-            使用带权的dij算法对路由表进行更新，对所有顶点使用dij算法
-            返回值：返回start到终点的最短距离
-        */
+
         this.update_least_pos = function(start){
+            /* 函数声明：获取某个顶点到其余顶点的最短路径，
+                    ！！！！！更新least_pos数组！！！！！
+                使用带权的dij算法对路由表进行更新，对所有顶点使用dij算法
+                返回值：返回start到终点的最短距离
+            */
             var visit = []
             var dis = []
 
@@ -284,27 +381,32 @@
                 this.least_pos[i] = -1 // 表示无法找到最短路径
             }
             var queue = []
-            queue.push([start, 0])
+            queue.push([start, 0]) // ? [start, 0] -> [要去的点，距原点的距离]
             dis[start] = 0
 
             while(queue.length > 0){
-                var tmp = queue[0]
+                var tmp = queue[0] // 队首元素
                 var tmp_pos = 0
-                for(var i = 0; i < queue.length; i++){
-                    if(queue[i][1] < tmp[1]){
+                for(var i = 0; i < queue.length; i++){ 
+                    if(queue[i][1] < tmp[1]){ // 选距离最近且未遍历过的点!
                         tmp = queue[i]
                         tmp_pos = i
                     }
                 }
-                queue.splice(tmp_pos, 1)
-                if(visit[tmp[0]] == 1)
+                queue.splice(tmp_pos, 1) // 删除tmp_pos位置的
+                if(visit[tmp[0]] == 1)  // 已经遍历过该点
                     continue;
-                visit[tmp[0]] = 1
+                visit[tmp[0]] = 1 
 
                 for(var i = 0; i < this.route_edge[tmp[0]].length; i++){
+                    // 更新这个点的周边情况，更新距离
                     if(dis[tmp[0]] + this.route_edge[tmp[0]][i].get_weight() < dis[this.route_edge[tmp[0]][i].get_to()]){
+                        // 边的长度
                         dis[this.route_edge[tmp[0]][i].get_to()] = dis[tmp[0]] + this.route_edge[tmp[0]][i].get_weight()
-                        this.least_pos[this.route_edge[tmp[0]][i].get_to()] = tmp[0]
+
+                        //! 动了全局变量！ nmd
+                        this.least_pos[this.route_edge[tmp[0]][i].get_to()] = tmp[0] 
+
                         queue.push([this.route_edge[tmp[0]][i].get_to(), dis[this.route_edge[tmp[0]][i].get_to()]])
                     }
                 }
@@ -312,16 +414,20 @@
             return dis[this.terminal]
         }
 
-        /* 函数声明：路由表更新
-            对所有顶点使用dij算法进行路由调整
-        */
+
         this.update_route_table = function(){
+            /* 函数声明：路由表更新
+                对所有顶点使用dij算法进行路由调整
+            */
             for(var i = 0; i < this.route_vertex.length; i++){
                 var vertex_index = this.route_vertex[i]
                 /* 获取least_pos 数组 */
-                this.update_least_pos(vertex_index)
+                this.update_least_pos(vertex_index) //! 使用dji 更新了点和点之间的情况
+
                 for(var j = 0; j < this.route_vertex.length; j++){
+
                     var dst_index = this.route_vertex[j]
+                    //更新每个点的出口路由
                     this.route_table[vertex_index].set_route(dst_index, this.find_entry(dst_index, vertex_index))
                 }
             }
@@ -366,11 +472,11 @@
             if(find_ == 0){
                 //顶点不存在  拒绝删除
                 alert("该顶点不存在，拒绝删除")
-                    return
+                    return false;
             }
             if(vertex_index == this.start || vertex_index == this.terminal){
                 alert("删除的顶点为路由起点或路由终点，拒绝删除")
-                return
+                return false;
             }
             /* 若与顶点相连的边有数据包 拒绝删除*/
             /* 边上有数据包的判定条件可以通过边权来判定 */
@@ -378,7 +484,7 @@
                 if(this.route_edge[vertex_index][i].get_weight() > 1){
                     //有数据包  拒绝删除
                     alert("该顶点所连接边包含数据包，拒绝删除")
-                    return
+                    return false;
                 }
             }
             var pos
@@ -393,7 +499,9 @@
                 this.route_edge[vertex_index].pop()
             
             /* 更新对应路由表 */
-            this.update_route_table()
+            this.update_route_table();
+
+            return true;
         }
     
         /* 函数声明：删除边
@@ -411,7 +519,7 @@
             }
             if(flag == 0){
                 alert("不存在该边 或该边存在数据包 拒绝删除")
-                return
+                return false;
             }
             else
                 this.route_edge[from].splice(pos, 1)
@@ -421,10 +529,28 @@
                     pos = i
                 }
             }
+
             this.route_edge[to].splice(pos, 1)
             /* 更新对应路由表 */
             this.update_route_table()
-        }
+
+            /* 更新当前边集 */
+            if(from > to)
+                [from, to] = [to, from];
+            console.log("!!!!!!")
+            console.log(this.cur_edges)
+            for(let i = 0 ; i < this.cur_edges.length; i ++ ){
+                var cur_edge = this.cur_edges[i];
+                console.log(cur_edge)
+                if(cur_edge[0] == from && cur_edge[1] == to){
+                    console.log("!!!!!!")
+                    this.cur_edges.splice(i, 1);
+                    break;
+                }
+                    
+            }
+            return true;
+        }   
     
         /* 函数声明：增加边
             改变图的拓扑结构并更新路由
@@ -451,8 +577,15 @@
             if(visit[to] == 0)
                 this.route_vertex.push(to)
             
-            this.route_edge[from].push(new ArcEdge(to, 1))
-            this.route_edge[to].push(new ArcEdge(from, 1))
+
+            this.route_edge[from].push(new ArcEdge(to, 1));
+            this.route_edge[to].push(new ArcEdge(from, 1));
+
+            if(from > to)
+                this.cur_edges.push([to, from]);
+            else{
+                this.cur_edges.push([from, to]);
+            }
 
             /* 更新对应路由表 */
             this.update_route_table()
