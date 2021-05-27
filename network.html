@@ -11,21 +11,33 @@
 
 </head>
 <body>
-    <label>请输入删除节点的编号<input type="number" class="remove_node"></label><br/>
-    <label>请输入删除边的编号<input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label><br/>
-    <label>请输入增加边的编号<input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label><br/>
-    <label>发送数据包<input type="number" class="send"></label><br/>
-    <input type="button" class="1">
-    <input type="button" class="2">
-    <input type="button" class="3">
-    <input type="button" class="4">
+    <h1>小组附加题11：无连接服务的实现</h1>
+    <br/>
+    <br/>
+    <label> 组员： 张海 林智生 郑秋实 </label>
+    <br/>
+    <br/>
+    <h3> 1.你可以进行的操作 </h3>
+    <br/>
+    <label>(注意输入范围是1-6，分别对应A-E)</label>
+    <br/>
+    <label>请输入删除节点的编号 <input type="number" class="remove_node"></label> <input type="button" class="1" value="删除节点"> <br/>
+    <label>请输入删除边的编号   <input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label> <input type="button" class="2" value="删除边"> <br/>
+    <label>请输入增加边的编号   <input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label> <input type="button" class="3" value="增加边"><br/>
+    <label>本轮发送数据包的个数     <input type="number" class="send"></label> <input type="button" class="4" value="发送包"> <br/>
+    <br/>
+    <br/>
+     
 
+    
+    <h3> 2.动画效果 </h3>
     <div id = "canvas">
 
         
     </div>
-
-
+    <br/>
+    <br/>
+    <h3> 3.当前路由表 </h3>
     <div class="row" style="height: 360px;">
         <div class="col" style="width: 200px;">
             <div class="table-responsive" style="width: 600px;">
@@ -36,303 +48,56 @@
 
         
     </div>
+    <br/>
+    <br/>
+    <h3> 4.当前数据包 </h3>
     <div class="table-responsive">
         <table class="table" id = "pack_table">
-            <thead>
-                <tr>
-                    <th>Column 1</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Cell 1<input type="checkbox"></td>
-                </tr>
-                <tr></tr>
-            </tbody>
         </table>
     </div>
-    <!-- <p>Click anywhere to move the ball</p>
-    <div id="foo" class="ball"><p>fuck</p></div> -->
 
 </body>
-<script src="Connectionless_service.js"></script>
-<script src="jquery.js"></script>
+<script src="src/Connectionless_service.js"></script>
+
+<script src="js/jquery.js"></script>
 <script type="text/javascript" src="js/raphael-min.js"></script>
 <script type="text/javascript" src="js/dracula_graffle.js"></script>
 <script type="text/javascript" src="js/dracula_graph.js"></script>
+<script type="text/javascript" src="src/vis_graphic.js"></script>
 <script>
-    var redraw;
-    var height = 600;
+    /* 画布大小 */
+    var height = 700;
     var width = 1000;
-
+    /* 位置 */
     function vis_pos(x, y){
         this.x = x;
         this.y = y;
     }
-//     var f = document.getElementById('foo');
-// document.addEventListener('click', function(ev){
-//     f.style.transform = 'translateY('+(ev.clientY-25)+'px)';
-//     f.style.transform += 'translateX('+(ev.clientX-25)+'px)';
-// },false);
+    /* 路由位置 */
     route_position = [new vis_pos(0, 0),
                       new vis_pos(100, 200),
                       new vis_pos(300, 150), 
-                      new vis_pos(350, 400),
+                      new vis_pos(350, 500),
                       new vis_pos(500, 150),
-                      new vis_pos(700, 200),
-                      new vis_pos(900, 200),
-                      new vis_pos(400, 400),
+                      new vis_pos(700, 300),
+                      new vis_pos(900, 300),
+                      new vis_pos(400, 500),
                       new vis_pos(400, 400)];
     
-    pack_node_position = [];               
-    pack_node_position[12] = new vis_pos(125, 100);
-
+    /* 算法初始化 */
     var graph = new myGraph(1, 6, 4)
     graph.init()
     graph.update_route_table();
 
     var vis_g = new Graph();
 
-
-
-
-
-
-
-    
-    function add_router(vis_g, route_id, my_graph, vis_pos){
-        var x = vis_pos[route_id].x;
-        var y = vis_pos[route_id].y;
-
-        var cur_route_table = my_graph.route_table[route_id]
-        var cur_router_name = String.fromCharCode(65 + route_id - 1);
-
-        var render = function(r, n) {
-                /* the Raphael set is obligatory, containing all you want to display */
-                var set = r.set().push(
-                    /* custom objects go here */
-                    r.rect(n.point[0]-30, n.point[1]-13, 62, 66).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y }))
-                    .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px",  "x": x + 10,"y": y - 10}));
-                    
-                /* custom tooltip attached to the set */
-                let i = 0;
-                set.items.forEach(function(el) {/*tooltip = Raphael.el.tooltip;*/
-                    /*添加底色*/
-                    var rect_ = r.rect(0, 0, 80, 100).attr({"fill": "#fec", "stroke-width": 1, r : "9px", "x": -50, "y": -100 })
-
-                    var tooltip = r.set().push(rect_);
-                    /*添加路由表内容*/
-                    var total_table_contents = ""
-                    for(let i = 1 ; i <= cur_vertex_node_num; i ++){
-                        var cur_line = " " + String.fromCharCode(65 + i - 1) + ": " + String.fromCharCode(65 + cur_route_table.get_route(i) - 1) +"\n";
-                        total_table_contents += cur_line;
-                    };
-
-                    var text_ = r.text(n.point[0], n.point[1] + 20, total_table_contents).attr({"x": -25, "y": -50 })         
-                    tooltip.push(text_)
-                    
-                    el.tooltip(tooltip)
-                    el.node.setAttribute("id", "router-" + cur_router_name)
-                    el.node.setAttribute("class", "router")
-                });
-                return set;
-            };
-
-        // console.log("router"+cur_router_name)
-        vis_g.addNode("router"+cur_router_name, {
-            label : "router" +  cur_router_name,
-            /* filling the shape with a color makes it easier to be dragged */
-            /* arguments: r = Raphael object, n : node object */
-            render : render
-        });
-    }
-    
-    function find_cur_edge_pack(from, to, cur_all_pack){
-        var cur_edge_pack = [];
-        cur_all_pack.forEach(ele => {
-            var cur_ele_pos = ele.get_pos();
-            if(cur_ele_pos[0] == from && cur_ele_pos[1] == to){
-                cur_edge_pack.push(ele);
-
-            }
-        });
-        return cur_edge_pack;
-    }
-
-    function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
-        var x = (vis_pos[from].x + vis_pos[to].x) / 2;
-        var y = (vis_pos[from].y + vis_pos[to].y) / 2;
-        
-        var cur_all_pack = my_graph.cur_all_pack_pos;
-
-        var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
-        console.log(cur_edge_pack)
-
-        var cur_pack_name = "edge_" + from + "-" + to;
-
-        var from_route_name =  "router" + String.fromCharCode(65 + from - 1);
-        var to_route_name = "router" + String.fromCharCode(65 + to - 1);
-
-        var render = function(r, n) {
-                var set = r.set()
-                    .push(r.rect(n.point[0]-30, n.point[1]-13, 10, 10).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y }))
-                    .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px",  "x": x + 10,"y": y - 10}));
-                
-                set.items[1].node.setAttribute("class", cur_pack_name+"_num");
-                // console.log("!!!!")
-                // console.log(set.items[1].node)
-                /* custom tooltip attached to the set */
-                var rect_ = r.rect(0, 0, 80, 100).attr({"fill": "#fec", "stroke-width": 1, r : "9px", "x": -50, "y": -100 })
-
-                var tooltip = r.set().push(rect_);
-                /*添加包节点内容*/
-                var total_pack_contents = ""
-                for(let i = 1 ; i <= cur_edge_pack.length; i ++){
-                    var cur_line = " " + cur_edge_pack[i] +"\n";
-                    total_pack_contents += cur_line;
-                };
-                var text_ = r.text(n.point[0], n.point[1] + 20, total_pack_contents).attr({"x": -25, "y": -50 })         
-                tooltip.push(text_)
-
-                tooltip.items[tooltip.items.length - 1].node.setAttribute("class", cur_pack_name);
-
-                set.items[0].tooltip(tooltip)
-                // set.items.forEach(function(el) {
-                // //     /*添加底色*/
-                //     var cur_node = el.node;
-                //     // console.log(cur_node.attributes);
-                //     // console.log(cur_node.childNodes);
-                //     //cur_node.setAttribute("class", "pack_edge")
-                // });
-                return set;
-            };
-
-        
-
-        vis_g.addNode(cur_pack_name, {
-            label : "num:" + cur_edge_pack.length,
-            render : render
-        });
-
-
-
-        console.log(from_route_name)
-
-        // vis_g.deleteEdge(from_route_name, cur_pack_name);
-        // vis_g.deleteEdge(to_route_name, cur_pack_name);
-        
-        vis_g.addEdge(from_route_name, cur_pack_name);
-        vis_g.addEdge(to_route_name, cur_pack_name);
-    }
-    
-    function update_pack_edge(from, to, my_graph){
-        var cur_all_pack = my_graph.cur_all_pack_pos;
-
-        var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
-
-        /*添加包节点内容*/
-        var total_pack_contents = ""
-        for(let i = 0 ; i < cur_edge_pack.length; i ++){
-            var ele = cur_edge_pack[i].get_pos();
-            var cur_line = " PAK: " + cur_edge_pack[i].id + "( from " + String.fromCharCode(65 + ele[0] - 1) +")" +"\n";
-            total_pack_contents += cur_line;
-        };
-
-        var cur_pack_name = "edge_" + from + "-" + to;
-        $("." + cur_pack_name).html("<tspan>" + total_pack_contents + "</tspan>");
-        $("." + cur_pack_name + "_num").html("<tspan>" + "num: " + cur_edge_pack.length + "</tspan>");
-
-        //console.log($("." + cur_pack_name).text());
-    }
-
-    function add_package(vis_g, pack_id, my_graph, vis_pos){
-        /* 起始 */
-        var x = vis_pos[1].x;
-        var y = vis_pos[1].y;
-
-        var cur_pack_name = "pack_" + pack_id;
-        /*  */
-        var render = function(r, n) {
-                var set = r.set()
-                    .push(r.circle(0, 0, 54).attr({"fill": "#fff", "stroke-width": 2}))
-                    .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px"}));
-                    
-                    //set.items[0].node.innerHTML = "<p>" +cur_pack_name + "</p>";
-                set.items[0].node.setAttribute("id", cur_pack_name);
-                set.items[0].node.setAttribute("class",  "pack");
-                set.items[1].node.setAttribute("class",  "pack");
-                return set;
-        };
-        
-        vis_g.addNode(cur_pack_name, {
-            label : cur_pack_name,
-            render : render
-        });               
-        console.log(cur_pack_name)
-    
-    };
-
-    function del_router(vis_g, route_id){
-        var cur_router_name = "router" + String.fromCharCode(65 + route_id - 1);
-        if(vis_g.nodes[cur_router_name] == undefined){
-            console.log("@@@@@@@@@@@@@@@2", cur_router_name)
-            console.log(vis_g.nodes[cur_router_name])
-            return;
-        } 
-            
-        
-        var cur_pack_edge = vis_g.nodes[cur_router_name].edges;
-
-        console.log("!!!!")
-        console.log(cur_pack_edge)
-        for(let i = 0 ; i < cur_pack_edge.length; i ++ ){
-            var pack_edge_id = cur_pack_edge[i].target.id;
-            console.log(pack_edge_id)
-            vis_g.deleteNode(pack_edge_id);
-            i -- ;
-        }
-
-        vis_g.deleteNode(cur_router_name);
-    }
-    
-    function del_pack(vis_g, pack_id){
-        vis_g.deleteNode("pack_" + pack_id);
-    }
-    function del_pack_edge(vis_g, pack_id){
-        vis_g.deleteNode(pack_id);
-    }
-    function del_pack_edge(vis_g, from, to){
-        vis_g.deleteNode("edge_" + from + "-" + to);
-    }
-
-    function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
-        var pack_name = "pack_" + pack_id;
-
-        //var ele = cur_edge_pack[i].get_pos();
-        var from_route = vis_pos_[cur_pos[0]];
-        var to_pack_edge = new vis_pos((vis_pos_[cur_pos[0]].x + vis_pos_[cur_pos[1]].x) / 2, (vis_pos_[cur_pos[0]].y + vis_pos_[cur_pos[1]].y) / 2);
-        //var anim = Raphael.animation
-        //  vis_g.nodes[pack_name].shape.animate( { 0.25: {'cx': from_route.x, 'cy': from_route.y, 'x': from_route.x, 'y': from_route.y}, 
-        //  0.5: {'cx': to_pack_edge.x, 'cy': to_pack_edge.y, 'x': to_pack_edge.x, 'y': to_pack_edge.y} }, speed*5);
-
-        //先移动到路由点
-        vis_g.nodes[pack_name].shape.animate({'cx': from_route.x, 'cy': from_route.y, 'x': from_route.x, 'y': from_route.y}, speed);
-        // //再移动到包点
-        // vis_g.nodes[pack_name].shape.animate({'cx': to_pack_edge.x, 'cy': to_pack_edge.y, 'x': to_pack_edge.x, 'y': to_pack_edge.y}, speed)
-    }
-
+    /* 复现课本的图片 */
     add_router(vis_g, 1, graph, route_position);
-
     add_router(vis_g, 2, graph, route_position);
-
     add_router(vis_g, 3, graph, route_position);
-
     add_router(vis_g, 4, graph, route_position);
-
     add_router(vis_g, 5, graph, route_position);
-
     add_router(vis_g, 6, graph, route_position);
-
 
     add_pack_edge(vis_g, 1, 2, graph, route_position);
     add_pack_edge(vis_g, 1, 3, graph, route_position);
@@ -343,135 +108,33 @@
     add_pack_edge(vis_g, 5, 6, graph, route_position);
 
     
-
-
-    /* draw the graph using the RaphaelJS draw implementation */
     var renderer = new Graph.Renderer.Raphael('canvas', vis_g, width, height);
-
-
     renderer.draw();
 
-    redraw = function() {
-        renderer.draw();
-    };
-
-
-    function update_route_table_vis(my_graph){
-        function generateTableHead(table, data, cur_len) {
-                let thead = table.createTHead();
-                let row = thead.insertRow();
-                for (let key = 0; key <= cur_len; key ++ ) {
-                    let th = document.createElement("th");
-                    if(key > 0){
-                        let text = document.createTextNode("Router" + String.fromCharCode(65 + key - 1));
-                        th.appendChild(text);
-                    }
-                    row.appendChild(th);
-                }
-            }
-
-        function generateTable(table, data, cur_len) {
-            for (let i = 1; i <= cur_len ; i ++) {
-                element = data[i];
-                let row = table.insertRow();
-                for (let key = 0; key <= cur_len ; key ++) {
-                    let cell = row.insertCell();
-                    let text;
-                    if(key == 0){
-                        text = document.createTextNode(String.fromCharCode(65 + i - 1));
-                    }
-                    else{
-                        text = document.createTextNode(String.fromCharCode(65 + element.route_path[key] - 1));
-                        
-                    }
-                    cell.appendChild(text);
-                }
-            }
-        }
-        
-        //console.log(my_graph.route_table)
-        var table = document.querySelector("#router-table");
-        // delete
-        table.removeChild(table.childNodes[0]);
-
-        var cur_len = graph.route_vertex.length;
-        generateTableHead(table, my_graph.route_table,cur_len);
-        generateTable(table, my_graph.route_table, cur_len);
-    }
-
-    // function update_route_table_vis(){
-    //     function generateTableHead(table, data, cur_len) {
-    //             let thead = table.createTHead();
-    //             let row = thead.insertRow();
-    //             for (let key = 0; key <= cur_len; key ++ ) {
-    //                 let th = document.createElement("th");
-    //                 if(key > 0){
-    //                     let text = document.createTextNode("Router" + String.fromCharCode(65 + key - 1));
-    //                     th.appendChild(text);
-    //                 }
-    //                 row.appendChild(th);
-    //             }
-    //         }
-
-    //     function generateTable(table, data, cur_len) {
-    //         for (let i = 1; i <= cur_len ; i ++) {
-    //             element = data[i];
-    //             let row = table.insertRow();
-    //             for (let key = 0; key <= cur_len ; key ++) {
-    //                 let cell = row.insertCell();
-    //                 let text;
-    //                 if(key == 0){
-    //                     text = document.createTextNode(String.fromCharCode(65 + i - 1));
-    //                 }
-    //                 else{
-    //                     text = document.createTextNode(String.fromCharCode(65 + element.route_path[key] - 1));
-                        
-    //                 }
-    //                 cell.appendChild(text);
-    //             }
-    //         }
-    //     }
-    // }
-
-    
-    
-
+    /* 更新表格 */
     update_route_table_vis(graph);
+    update_pack_table_vis(graph);
 
-    function find_id_pack(pack_set, id){
-        var index = -1;
-        for(let i = 0 ; i < pack_set.length; i ++ ){
-            if(pack_set[i].id == id){
-                index = i;
-                break; 
-            }
-        }
-        return index;
-    }
-    
+    /* 移除结点 */
     $(".1").click(function(){
-        var source = parseInt($(".remove_node").val());
-
-                
+        var source = parseInt($(".remove_node").val());  
         if(isNaN(source)){
             alert("亲，您还没有输入哦");
             return;
         }
 
         if(graph.remove_vertex(source)){
+            /* 如果移除成功，就从图上删掉 */
             console.log(source)
             del_router(vis_g, source);
             renderer.draw();
         };
-
-
-        
-        console.log(graph.get_data_packet());
-        console.log(graph.get_route_table());
-
-
-
+        // 更新可视化路由表
+        update_route_table_vis(graph);
+        update_pack_table_vis(graph);
     })
+
+    /* 移除边 */
     $(".2").click(function(){
         var source = parseInt($(".remove_edge_from").val());
         var target = parseInt($(".remove_edge_to").val());
@@ -482,15 +145,18 @@
             alert("亲，您还没有输入哦");
             return;
         }
+        /* 删除边 */
         if(graph.remove_edge(source, target)){
             del_pack_edge(vis_g, source, target);
             renderer.draw();
         }
         
-        console.log(graph.get_data_packet())
-        console.log(graph.get_route_table())
+        // 更新可视化路由表
+        update_route_table_vis(graph);
+        update_pack_table_vis(graph);
     });
 
+    /* 添加边 */
     $(".3").click(function(){
         // 保证 source < target
         var source = parseInt($(".add_edge_from").val());
@@ -500,21 +166,20 @@
             alert("亲，您还没有输入哦");
             return;
         }
-        console.log(source, target);
 
         if(source > target)
             [source, target] = [target, source];
-
+        /* 添加边 */
         graph.add_edge(source, target);
-
-        // console.log(graph.get_data_packet())
-        // console.log(graph.get_route_table())
-
         add_pack_edge(vis_g, source, target, graph, route_position);
 
         renderer.draw();
+        // 更新可视化路由表
+        update_route_table_vis(graph);  
+        update_pack_table_vis(graph);      
     })
 
+    /*发送包 */
     $(".4").click(function(){
         var per_pack_num = parseInt($(".send").val());
 
@@ -530,9 +195,9 @@
         }
         
         //算法：
-        
         graph.data_packet_move(per_pack_num);
 
+        /* 更新上一时刻的包和这一时刻的包*/
         graph.prev_all_pack_pos = hardCopy(graph.cur_all_pack_pos);
         var ret = graph.get_data_packet()
         graph.cur_all_pack_pos = hardCopy(ret);
@@ -540,7 +205,6 @@
         //移动新生成的包
         while(graph.new_pack_gen.length > 0){
             var cur_pack_id = graph.new_pack_gen.shift();
-            //console.log(cur_pack_id)
             add_package(vis_g, cur_pack_id, graph, route_position)
         }
         renderer.draw();
@@ -552,22 +216,15 @@
             pack_move_anime(vis_g, cur_pack_id, [cur_router, cur_router], route_position);
         }
 
-        // 更新可视化路由表
-        update_route_table_vis(graph);
-        
+
         // 更新各个边
-        console.log(graph.cur_edges);
+        graph.route_vertex.forEach(ele => {
+            update_router(ele, graph);
+        });
 
         graph.cur_edges.forEach(ele => {
             update_pack_edge(ele[0], ele[1], graph);
         })
-        // update_pack_edge( 1, 2, graph);
-        // update_pack_edge( 1, 3, graph);
-        // update_pack_edge( 2, 4, graph);
-        // update_pack_edge( 3, 4, graph);
-        // update_pack_edge( 3, 5, graph);
-        // update_pack_edge( 4, 5, graph);
-        // update_pack_edge( 5, 6, graph);
 
         // 更新中间包
         for(let i = 0 ; i < graph.cur_all_pack_pos.length; i ++ ){
@@ -576,7 +233,11 @@
             var cur_pos = graph.cur_all_pack_pos[i].get_pos()
             pack_move_anime(vis_g, move_pack_id, cur_pos, route_position);
         }
-
+        // 更新可视化路由表
+        update_route_table_vis(graph);
+        update_pack_table_vis(graph);
+        
+        
     })
 
 

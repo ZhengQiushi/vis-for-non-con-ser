@@ -45,11 +45,13 @@
     var max_vertex_node = 1000;
     var cur_vertex_node_num = 6;
 
-    function RouteTable()
+    function RouteTable(route_id)
     {
         /* 成员变量
+            route_id: 路由表的id
             route_path: 路由表的路径
         */
+        this.route_id = String.fromCharCode(65 + route_id - 1)
         this.route_path = [];
 
         /* 函数声明：初始化路由数组 
@@ -94,10 +96,12 @@
     {
         /* 成员变量
             edge 1-2: 该数据包位于哪两条边之间? 路由之间？
+            traveled_path: 经过的路径
         */
         this.edge1 = edge1;
         this.edge2 = edge2;
         this.id = global_pack_id ++ ;
+        this.traveled_path = [];
 
         /* 函数声明：获取数据包的边位置
             返回值: 边位置数组[]
@@ -114,6 +118,10 @@
         this.set_pos = function(edge1, edge2){
             this.edge1 = edge1
             this.edge2 = edge2            
+        }
+
+        this.get_traveled = function(){
+            this.traveled_path.push(this.get_pos()[0]);
         }
     }
 
@@ -161,7 +169,7 @@
             for(var i = 0; i < max_vertex_node; i++){
                 this.least_pos.push(0);
                 // 初始化
-                this.route_table.push(new RouteTable())
+                this.route_table.push(new RouteTable(i))
                 this.route_table[this.route_table.length - 1].init();
                 // 某一个路由的所有边？
                 this.route_edge.push([]);
@@ -302,6 +310,7 @@
                             this.route_edge[arr[0]][j].set_weight(this.route_edge[arr[0]][j].get_weight() + 1)
                             /* 更新包的位置 */
                             this.packet_pos[i].set_pos(arr[0], arr[1])
+                            this.packet_pos[i].get_traveled();
                         }
                     }
                 }
@@ -331,6 +340,8 @@
                             }
                         }
                         var cur_new_pack = new Packet_Pos(this.start, arr[1]);
+                        cur_new_pack.get_traveled();
+
                         this.new_pack_gen.push(cur_new_pack.id);
                         /* 更新数据包位置信息 */
                         this.packet_pos.push(cur_new_pack);
@@ -419,6 +430,13 @@
             /* 函数声明：路由表更新
                 对所有顶点使用dij算法进行路由调整
             */
+           /* !!! reset!!! */
+            for(var i = 0; i <= 6; i++){
+                for(var j = 0; j <= 6; j++){
+                    this.route_table[i].set_route(j, -1);
+                }
+            }
+
             for(var i = 0; i < this.route_vertex.length; i++){
                 var vertex_index = this.route_vertex[i]
                 /* 获取least_pos 数组 */
