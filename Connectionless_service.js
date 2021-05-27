@@ -495,8 +495,13 @@
             this.route_vertex.splice(pos, 1)
 
             /* 删除对应连接边 */
-            while(this.route_edge[vertex_index].length > 0)
-                this.route_edge[vertex_index].pop()
+            while(this.route_edge[vertex_index].length > 0){
+                // 更新了删除的方法
+                var cur_edge = this.route_edge[vertex_index][0];
+                this.remove_edge(vertex_index, cur_edge.get_to());
+            }
+
+   
             
             /* 更新对应路由表 */
             this.update_route_table();
