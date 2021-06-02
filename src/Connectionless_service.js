@@ -158,7 +158,7 @@
         this.route_edge = []; // route_edge[index][....] 下标的index的路由伸出去的点
         this.least_pos = []; // least[to] = from  -> 记录目标点的起源点
         this.packet_pos = []; // 所有当前仍然在流动的数据包
-        this.init_packet_cnt = 1;
+        this.init_packet_cnt = 0;
         this.new_pack_gen = []; // 每轮新增的包
         this.died_pack = [];  //每轮到达目标地址
 
@@ -297,6 +297,16 @@
                 /* 此时的arr数组中的数据为数据包的新位置*/
                 arr = [this.route_table[arr[1]].get_route(this.terminal), arr[1]]
                 
+                if(arr[0] == -1){
+                    // 包无法到达  认为直接死掉
+                    this.packet_pos[i].set_pos(0, 0)
+                    this.died_pack.push(i);
+                    continue
+                }
+                else if(arr[0] == tmp_arr[0] && arr[1] == tmp_arr[1]){
+                    // 反向传递
+                    arr = [arr[0], this.route_table[arr[0]].get_route(this.terminal)]
+                }
 
                 /* 更新包移动后的边权 */
                 /*
@@ -304,8 +314,12 @@
                  */
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++){
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
-                        if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet)  // 包阻塞 被滞留  //防止级联阻塞
-                            this.route_edge[tmp_arr[0]][j].set_weight(this.route_edge[tmp_arr[0]][j].get_weight() + 1)
+                        if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
+                            for(var k = 0; k < this.route_edge[tmp_arr[0]].length; k++){
+                                if(this.route_edge[tmp_arr[0]][k].get_to() == tmp_arr[1])
+                                    this.route_edge[tmp_arr[0]][k].set_weight(this.route_edge[tmp_arr[0]][k].get_weight() + 1)
+                            }
+                        }
                         else{
                             this.route_edge[arr[0]][j].set_weight(this.route_edge[arr[0]][j].get_weight() + 1)
                             /* 更新包的位置 */
@@ -317,14 +331,18 @@
 
                 for(var j = 0; j < this.route_edge[arr[1]].length; j++){
                     if(this.route_edge[arr[1]][j].get_to() == arr[0]){
-                        if(this.route_edge[arr[1]][j].get_weight() == this.limit_packet)  // 包阻塞 被滞留  //防止级联阻塞
-                            this.route_edge[tmp_arr[1]][j].set_weight(this.route_edge[tmp_arr[1]][j].get_weight() + 1)
+                        if(this.route_edge[arr[1]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
+                            for(var k = 0; k < this.route_edge[tmp_arr[1]].length; k++){
+                                if(this.route_edge[tmp_arr[1]][k].get_to() == tmp_arr[0])
+                                    this.route_edge[tmp_arr[1]][k].set_weight(this.route_edge[tmp_arr[1]][k].get_weight() + 1)
+                            }
+                        }
                         else
                             this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() + 1)
                     }
                 } 
             }
-            this.init_packet_cnt = new_send_pack_num;
+            this.init_packet_cnt += new_send_pack_num
             /* 然后对起点的数据包进行处理 */
             while(this.init_packet_cnt > 0){
                 var find_ = false
@@ -355,7 +373,7 @@
                 if(find_ == false)
                     break;
             }
-            this.init_packet_cnt += 1
+            
             /* 更新路由表 */
             this.update_route_table()
         }
