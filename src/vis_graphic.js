@@ -289,6 +289,8 @@ async function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
     var from_route = vis_pos_[cur_pos[0]];
 
     /* 计算包点 */
+    console.log(pack_name , cur_pos);
+
     var to_pack_edge = new vis_pos((vis_pos_[cur_pos[0]].x + vis_pos_[cur_pos[1]].x) / 2, (vis_pos_[cur_pos[0]].y + vis_pos_[cur_pos[1]].y) / 2);
     //先移动到路由点
     vis_g.nodes[pack_name].shape.animate({'cx': from_route.x, 'cy': from_route.y, 'x': from_route.x, 'y': from_route.y}, speed);

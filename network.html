@@ -25,6 +25,8 @@
     <label>请输入删除边的编号   <input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label> <input type="button" class="2" value="删除边"> <br/>
     <label>请输入增加边的编号   <input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label> <input type="button" class="3" value="增加边"><br/>
     <label>本轮发送数据包的个数     <input type="number" class="send"></label> <input type="button" class="4" value="发送包"> <br/>
+
+    
     <br/>
     <br/>
      
@@ -125,7 +127,6 @@
 
         if(graph.remove_vertex(source)){
             /* 如果移除成功，就从图上删掉 */
-            console.log(source)
             del_router(vis_g, source);
             renderer.draw();
         };
@@ -189,11 +190,17 @@
         }
 
         //图形化： 删除已经到达目的地的
+        while(graph.achieved_pack.length > 0){
+            var cur_pack_id = graph.achieved_pack.shift();
+            del_pack(vis_g, cur_pack_id);
+        }
+        
+        //图形化： 删除已死了的
         while(graph.died_pack.length > 0){
             var cur_pack_id = graph.died_pack.shift();
             del_pack(vis_g, cur_pack_id);
         }
-        
+
         //算法：
         graph.data_packet_move(per_pack_num);
 
@@ -201,6 +208,9 @@
         graph.prev_all_pack_pos = hardCopy(graph.cur_all_pack_pos);
         var ret = graph.get_data_packet()
         graph.cur_all_pack_pos = hardCopy(ret);
+
+
+
 
         //移动新生成的包
         while(graph.new_pack_gen.length > 0){
@@ -210,8 +220,8 @@
         renderer.draw();
 
         //移动到终点
-        for(let i = 0 ; i < graph.died_pack.length; i ++ ){
-            var cur_pack_id = graph.died_pack[i];//.shift();
+        for(let i = 0 ; i < graph.achieved_pack.length; i ++ ){
+            var cur_pack_id = graph.achieved_pack[i];//.shift();
             var cur_router = 6;//graph.route_vertex.length;
             pack_move_anime(vis_g, cur_pack_id, [cur_router, cur_router], route_position);
         }
@@ -226,12 +236,62 @@
             update_pack_edge(ele[0], ele[1], graph);
         })
 
+        
+
+
+            for(let j = 0; j < graph.cur_all_pack_pos.length; j ++ ){
+                var cur_pack = graph.cur_all_pack_pos[j];
+                var remain = true;
+                for(let i = 0; i < graph.prev_all_pack_pos.length; i ++ ){
+                    var pre_pack = graph.prev_all_pack_pos[i];
+                    if(pre_pack.id == cur_pack.id){
+
+                        if(cur_pack.edge1 == pre_pack.edge1 || cur_pack.edge1 == pre_pack.edge2){
+                            cur_pack.from = cur_pack.edge1;
+                            cur_pack.to = cur_pack.edge2;
+                        }
+                        else if(cur_pack.edge2 == pre_pack.edge1 || cur_pack.edge2 == pre_pack.edge2){
+                            cur_pack.from = cur_pack.edge2;
+                            cur_pack.to = cur_pack.edge1;
+                        }
+
+                        remain = false;
+                        break;
+                    }
+                }
+                if(remain == true){
+                    cur_pack.from = cur_pack.get_pos()[0];
+                    cur_pack.to = cur_pack.get_pos()[1];
+
+                }
+        }
+        //console.log("graph.cur_all_pack_pos", graph.cur_all_pack_pos)
+
+
         // 更新中间包
         for(let i = 0 ; i < graph.cur_all_pack_pos.length; i ++ ){
             var cur_pack = graph.cur_all_pack_pos[i];
             var move_pack_id = cur_pack.id;
-            var cur_pos = graph.cur_all_pack_pos[i].get_pos()
-            pack_move_anime(vis_g, move_pack_id, cur_pos, route_position);
+            var cur_pos = graph.cur_all_pack_pos[i].lets_go()
+
+            console.log(graph.cur_all_pack_pos[i])
+
+            // 不移动位置尚未改变的包
+            var need_move = true;
+            for(let j = 0 ; j < graph.prev_all_pack_pos.length; j ++ ){
+                var cur_pack_pre = graph.prev_all_pack_pos[j];
+                if(cur_pack_pre.id == move_pack_id){
+                    //一样，看位置是否一样
+                    if(cur_pack_pre.edge1 == cur_pack.edge1 && cur_pack_pre.edge2 == cur_pack.edge2){
+                        need_move = false;
+                        break;
+                    }
+                }
+            }
+            if(need_move){
+                pack_move_anime(vis_g, move_pack_id, cur_pos, route_position);
+            }
+            
         }
         // 更新可视化路由表
         update_route_table_vis(graph);

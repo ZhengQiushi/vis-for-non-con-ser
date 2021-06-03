@@ -100,6 +100,9 @@
         */
         this.edge1 = edge1;
         this.edge2 = edge2;
+        this.from = 0;
+        this.to = 0;
+
         this.id = global_pack_id ++ ;
         this.traveled_path = [];
 
@@ -112,7 +115,9 @@
                 return [this.edge1, this.edge2]
             return [this.edge2, this.edge1]
         }
-
+        this.lets_go = function(){             
+            return [this.from, this.to]
+        }
         /* 函数声明：设置数据包的边位置
         */
         this.set_pos = function(edge1, edge2){
@@ -122,6 +127,8 @@
 
         this.get_traveled = function(){
             this.traveled_path.push(this.get_pos()[0]);
+            // this.from = this.to;
+            // this.to = this.get_pos()[0];
         }
     }
 
@@ -160,7 +167,10 @@
         this.packet_pos = []; // 所有当前仍然在流动的数据包
         this.init_packet_cnt = 0;
         this.new_pack_gen = []; // 每轮新增的包
-        this.died_pack = [];  //每轮到达目标地址
+        this.achieved_pack = [];  //每轮到达目标地址
+
+        this.died_pack = []; // 死了
+
 
         this.cur_edges = []; // 每个都是[1, 2] 1 < 2
         /* 函数声明：初始化图结构
@@ -288,7 +298,7 @@
                 if(arr[0] == this.terminal || arr[1] == this.terminal){
                     this.packet_pos[i].set_pos(0, 0)
                     //
-                    this.died_pack.push(i);
+                    this.achieved_pack.push(i);
                     continue;
                 }
                 
@@ -299,8 +309,8 @@
                 
                 if(arr[0] == -1){
                     // 包无法到达  认为直接死掉
-                    this.packet_pos[i].set_pos(0, 0)
-                    this.died_pack.push(i);
+                    this.packet_pos[i].set_pos(0, 0);
+                    this.died_pack.push(i); // 死了
                     continue
                 }
                 else if(arr[0] == tmp_arr[0] && arr[1] == tmp_arr[1]){
@@ -347,7 +357,13 @@
             while(this.init_packet_cnt > 0){
                 var find_ = false
                 var arr = [this.start, 0]
-                arr[1] = this.route_table[this.start].get_route(this.terminal)
+                arr[1] = this.route_table[this.start].get_route(this.terminal);
+
+
+                var cur_new_pack = new Packet_Pos(this.start, arr[1]);
+                
+
+                
                 for(var i = 0; i < this.route_edge[this.start].length; i++){
                     if(this.route_edge[arr[0]][i].get_to() == arr[1] && this.route_edge[arr[0]][i].get_weight() != this.limit_packet){
                         /* 更新边权 */
@@ -357,21 +373,37 @@
                                 this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() + 1)
                             }
                         }
-                        var cur_new_pack = new Packet_Pos(this.start, arr[1]);
-                        cur_new_pack.get_traveled();
-
                         this.new_pack_gen.push(cur_new_pack.id);
-                        /* 更新数据包位置信息 */
+                        cur_new_pack.get_traveled();
                         this.packet_pos.push(cur_new_pack);
-                        /* 更新计数器 */
-                        this.init_packet_cnt -= 1
                         find_ = true
                         break;
                     }
+                    else{
+
+
+                    }
                 }
                 /* 循环完毕都找不到 则直接退出即可 */
-                if(find_ == false)
-                    break;
+                if(find_ == false){
+                    // this.new_pack_gen.push(cur_new_pack.id);
+                    // this.packet_pos.push(cur_new_pack);
+                    console.log(console.log(this.init_packet_cnt, " fuck1!!!", cur_new_pack));
+                    cur_new_pack.edge2 = cur_new_pack.edge1 = 1;
+
+                    this.new_pack_gen.push(cur_new_pack.id);
+                    this.packet_pos.push(cur_new_pack);
+                }
+                //     break;
+                this.init_packet_cnt -= 1
+                
+                /* 更新数据包位置信息 */
+                // if(cur_new_pack.edge2 == -1){
+                //     cur_new_pack.edge2 = 1;
+                // }
+                
+                /* 更新计数器 */
+
             }
             
             /* 更新路由表 */
