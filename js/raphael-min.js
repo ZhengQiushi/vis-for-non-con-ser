@@ -3219,6 +3219,8 @@ Raphael = (function() {
                 bj.prev = a0;
             }
         }
+        if(a1.removed == true)
+            return;
         an.svg && a1 && a1.paper.safari();
         I[m] && setTimeout(aR);
     }

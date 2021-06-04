@@ -207,10 +207,8 @@ Graph.Renderer.Raphael = function(element, graph, width, height) {
         this.dx = e.clientX;
         this.dy = e.clientY;
         selfRef.isDrag = this;
-        this.set && this.set.animate({"fill-opacity": .1}, 200) && this.set.toFront();
-        e.preventDefault && e.preventDefault();
-        
-        
+        // this.set && this.set.animate({"fill-opacity": .1}, 200) && this.set.toFront();
+        // e.preventDefault && e.preventDefault();
     };
 
     document.onmousemove = function (e) {
@@ -471,6 +469,7 @@ Raphael.el.tooltip = function (tp) {
     this.tp = tp;
     this.tp.o = {x: 0, y: 0};
     this.tp.hide();
+    console.log(this)
     this.hover(
         function(event){ 
             this.mousemove(function(event){ 
@@ -484,5 +483,30 @@ Raphael.el.tooltip = function (tp) {
             this.tp.hide();
             this.unmousemove();
             });
+
+          
     return this;
 };
+
+Raphael.el.deleteMenu = function (tp) {
+    this.tp = tp;
+    this.tp.o = {x: 0, y: 0};
+    //this.tp.hide();
+    this.cur_status = false;
+
+    this.click(
+        function(event){
+            console.log("click", this.cur_status);
+            this.cur_status = ~this.cur_status;
+            if(this.cur_status == 0){
+                this.tp.show().toFront();
+            }
+            else{
+                this.tp.hide();
+            }
+        }
+    );
+    return this;
+};
+
+

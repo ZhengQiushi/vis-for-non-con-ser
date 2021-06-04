@@ -12,51 +12,60 @@
 </head>
 <body>
     <h1>小组附加题11：无连接服务的实现</h1>
-    <br/>
-    <br/>
+
     <label> 组员： 张海 林智生 郑秋实 </label>
-    <br/>
-    <br/>
-    <h3> 1.你可以进行的操作 </h3>
-    <br/>
-    <label>(注意输入范围是1-6，分别对应A-E)</label>
-    <br/>
-    <label>请输入删除节点的编号 <input type="number" class="remove_node"></label> <input type="button" class="1" value="删除节点"> <br/>
-    <label>请输入删除边的编号   <input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label> <input type="button" class="2" value="删除边"> <br/>
-    <label>请输入增加边的编号   <input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label> <input type="button" class="3" value="增加边"><br/>
-    <label>本轮发送数据包的个数     <input type="number" class="send"></label> <input type="button" class="4" value="发送包"> <br/>
 
-    
-    <br/>
-    <br/>
-     
+    <div class="row">
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h3> 1.你可以进行的操作 </h3>
+                    <br/>
+                    <label>(注意输入范围是1-6，分别对应A-E)</label>
+                    <br/>
+                    <label>请输入删除节点的编号 <input type="number" class="remove_node"></label> <input type="button" class="1" value="删除节点"> <br/>
+                    <label>请输入删除边的编号   <input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label> <input type="button" class="2" value="删除边"> <br/>
+                    <label>请输入增加边的编号   <input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label> <input type="button" class="3" value="增加边"><br/>
+                    <label>本轮发送数据包的个数     <input type="number" class="send"></label> <input type="button" class="4" value="发送包"> <br/>
+                
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h3 style = "position: absolute; left: 2%;"> 2.动画效果 </h3>
+                    <div id = "canvas">
+                        
+                    
+                    </div>
+                </div>
+            </div>          
+        </div>
 
-    
-    <h3> 2.动画效果 </h3>
-    <div id = "canvas">
-
-        
-    </div>
-    <br/>
-    <br/>
-    <h3> 3.当前路由表 </h3>
-    <div class="row" style="height: 360px;">
-        <div class="col" style="width: 200px;">
-            <div class="table-responsive" style="width: 600px;">
-                <table class="table"  id="router-table">
-                </table>
+        <div class="col">
+            <div class="row">
+                <div class="col">
+                    <h3> 3.当前路由表 </h3>
+                    <div class="table-responsive" style="width: 600px;">
+                        <table class="table"  id="router-table">
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row" >
+                <div class="col">
+                    <h3> 4.当前数据包 </h3>
+                    <div class="table-responsive" style="max-height: 400px;
+                    overflow-y: scroll;">
+                        <table class="table" id = "pack_table">
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
-        
     </div>
-    <br/>
-    <br/>
-    <h3> 4.当前数据包 </h3>
-    <div class="table-responsive">
-        <table class="table" id = "pack_table">
-        </table>
-    </div>
+
+
 
 </body>
 <script src="src/Connectionless_service.js"></script>
@@ -67,6 +76,44 @@
 <script type="text/javascript" src="js/dracula_graph.js"></script>
 <script type="text/javascript" src="src/vis_graphic.js"></script>
 <script>
+    function update_all_charts(){
+        update_route_table_vis(graph);
+        update_pack_table_vis(graph);
+        graph.route_vertex.forEach(ele => {
+            update_router(ele, graph);
+        });
+    }
+    function remove_router_event(source){
+        if(graph.remove_vertex(source)){
+            /* 如果移除成功，就从图上删掉 */
+            del_router(vis_g, source);
+            renderer.draw();
+        };
+        // 更新可视化路由表
+        update_all_charts();
+    }
+    function add_edge_event(source, target){
+        if(source > target)
+            [source, target] = [target, source];
+        /* 添加边 */
+        graph.add_edge(source, target);
+        add_pack_edge(vis_g, source, target, graph, route_position);
+
+        renderer.draw();
+        // 更新可视化路由表
+        update_all_charts();
+    }
+    function delete_edge_event(source, target){
+        if(source > target)
+            [source, target] = [target, source];
+
+        /* 删除边 */
+        if(graph.remove_edge(source, target)){
+            del_pack_edge(vis_g, source, target);
+            renderer.draw();
+        }
+        update_all_charts();
+    }
     /* 画布大小 */
     var height = 700;
     var width = 1000;
@@ -114,48 +161,36 @@
     renderer.draw();
 
     /* 更新表格 */
-    update_route_table_vis(graph);
-    update_pack_table_vis(graph);
+    // update_route_table_vis(graph);
+    // update_pack_table_vis(graph);
+    update_all_charts();
 
     /* 移除结点 */
     $(".1").click(function(){
         var source = parseInt($(".remove_node").val());  
+        console.log(source);
         if(isNaN(source)){
             alert("亲，您还没有输入哦");
             return;
         }
-
-        if(graph.remove_vertex(source)){
-            /* 如果移除成功，就从图上删掉 */
-            del_router(vis_g, source);
-            renderer.draw();
-        };
-        // 更新可视化路由表
-        update_route_table_vis(graph);
-        update_pack_table_vis(graph);
+        remove_router_event(source);
     })
+
 
     /* 移除边 */
     $(".2").click(function(){
         var source = parseInt($(".remove_edge_from").val());
         var target = parseInt($(".remove_edge_to").val());
-        if(source > target)
-            [source, target] = [target, source];
+
         
         if(isNaN(source) || isNaN(target)){
             alert("亲，您还没有输入哦");
             return;
         }
-        /* 删除边 */
-        if(graph.remove_edge(source, target)){
-            del_pack_edge(vis_g, source, target);
-            renderer.draw();
-        }
-        
-        // 更新可视化路由表
-        update_route_table_vis(graph);
-        update_pack_table_vis(graph);
+        delete_edge_event(source, target);
     });
+
+
 
     /* 添加边 */
     $(".3").click(function(){
@@ -167,17 +202,7 @@
             alert("亲，您还没有输入哦");
             return;
         }
-
-        if(source > target)
-            [source, target] = [target, source];
-        /* 添加边 */
-        graph.add_edge(source, target);
-        add_pack_edge(vis_g, source, target, graph, route_position);
-
-        renderer.draw();
-        // 更新可视化路由表
-        update_route_table_vis(graph);  
-        update_pack_table_vis(graph);      
+        add_edge_event(source, target);    
     })
 
     /*发送包 */
@@ -299,6 +324,171 @@
         
         
     })
+
+
+
+
+
+
+
+var all_router_status;
+
+var chosen = "rgb(0, 0, 0)";
+var clear = "#fff";
+
+var half_chosen = "rgb(122, 122, 122)"
+
+var cur_edge_chose = [];
+
+ // 删除边！点击后路由切换颜色
+ $('rect.router').on("click", function(){
+    var cur_router_name = $(this).attr("id");
+
+    $('rect.pack_edge').css("fill", clear);
+
+    // 清空所有双击后删除路由的颜色
+    $('rect.router').each(function(){
+        if($(this).css("fill") == chosen){
+            $(this).css("fill", clear);
+        }
+    });
+
+    if($(this).css("fill") == chosen)
+        return;
+
+    if($(this).css("fill") == half_chosen){
+        // 选了本身，状态切换
+        $(this).css("fill", clear);
+        var cur_pack_index = cur_edge_chose.indexOf(cur_router_name);
+        if (cur_pack_index > -1) { 
+            cur_edge_chose.splice(cur_pack_index, 1); 
+        } 
+    }
+    else{
+        // 选了其他的
+        if(cur_edge_chose.length >= 2){
+            cur_edge_chose = [];
+            $('rect.router').css("fill", clear);
+
+        }
+        cur_edge_chose.push($(this).attr("id"));
+        $(this).css("fill", half_chosen);
+    }
+
+    console.log("cur_edge_chose: ", cur_edge_chose)
+ });
+
+
+ // 删除路由！点击后路由切换颜色
+ $('rect.router').on("dblclick", function(){
+    cur_edge_chose = [];
+
+    if($(this).css("fill") == chosen){
+        // 选了本身，状态切换
+        $(this).css("fill", clear);
+    }
+    else{
+        // 选了其他的
+        $('rect.router').css("fill", clear);
+        $('rect.pack_edge').css("fill", clear);
+        $(this).css("fill", chosen);
+    }
+ });
+
+//   // 删除包边
+//  $('rect.pack_edge').on("dblclick", function(){
+//      //删除增添边
+//     cur_edge_chose = [];
+
+//     console.log("hhhhh")
+//     if($(this).css("fill") == chosen){
+//         // 选了本身，状态切换
+//         $(this).css("fill", clear);
+//     }
+//     else{
+//         // 选了其他的
+//         $('rect.router').css("fill", clear);
+//         $('rect.pack_edge').css("fill", clear);
+//         $(this).css("fill", chosen);
+//     }
+//  })
+
+
+
+$(document).keypress(function(e) {
+    console.log(e.which);
+
+    if(e.which == "100"){
+        // 选择路由删除
+        $('rect.router').each(function(){
+            if($(this).css("fill") == chosen){
+                if(confirm("确实要删除" + $(this).attr("id") + "吗？")){
+                    var source = $(this).attr("id").split("-")[1];
+                    console.log(source)
+                    source = source.charCodeAt() - 64;
+                    remove_router_event(source);
+                    return;
+                }
+            }
+        })
+        $('rect.pack_edge').each(function(){
+            // 选择包边删除边
+            if($(this).css("fill") == chosen){
+                var source = $(this).attr("class").split(" ")[0];
+                    source = source.split("_")[1];
+                    var p1 = parseInt(source.split("-")[0]);
+                    var p2 = parseInt(source.split("-")[1]);
+                    var edge_name = "边" + String.fromCharCode(65 + p1 - 1) + "-" +String.fromCharCode(65 + p2 - 1);
+                    if(confirm("确实要删除 " + edge_name + "吗？")){
+                        delete_edge_event(p1, p2)
+                        return;
+                    }
+            }
+        })
+        // 选择两个路由，删除边
+        if(cur_edge_chose.length == 2){
+            var source = cur_edge_chose[0].split("-")[1];
+            var target = cur_edge_chose[1].split("-")[1];
+            source = source.charCodeAt() - 64;
+            target = target.charCodeAt() - 64;
+            var edge_name = "边" + String.fromCharCode(65 + source - 1) + "-" +String.fromCharCode(65 + target - 1);
+                    if(confirm("确实要删除 " + edge_name + "吗？")){
+                        delete_edge_event(source, target);
+                        return;
+                    }
+
+            
+            return;
+        }
+
+    
+    
+    }
+    else if(e.which == 97){
+        // 选择两个路由添加边
+        if(cur_edge_chose.length == 2){
+            var source = cur_edge_chose[0].split("-")[1];
+            var target = cur_edge_chose[1].split("-")[1];
+            source = source.charCodeAt() - 64;
+            target = target.charCodeAt() - 64;
+            var edge_name = "边" + String.fromCharCode(65 + source - 1) + "-" +String.fromCharCode(65 + target - 1);
+
+            if(confirm("确实要添加 " + edge_name + "吗？")){
+                add_edge_event(source, target);
+                return;
+            }
+
+            
+        }
+        else{
+            if(cur_edge_chose.length == 0)
+                alert("您还没有选择要增加边的顶点哦~");
+            else if (cur_edge_chose.length == 1){
+                alert("请再选一个顶点吧~");
+            }
+        }
+    }
+})
 
 
 </script>

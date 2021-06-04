@@ -53,6 +53,7 @@
         */
         this.route_id = String.fromCharCode(65 + route_id - 1)
         this.route_path = [];
+        this.removed = false;
 
         /* 函数声明：初始化路由数组 
         */
@@ -161,7 +162,10 @@
         this.terminal = terminal
         this.limit_packet = max_data_packet_cnt + 1;
         this.route_vertex = []; // 目的地？
-        this.route_table = []
+        
+        this.route_table = [];
+        this.pre_route_table = []; // 上一时刻的路由表情况
+
         this.route_edge = []; // route_edge[index][....] 下标的index的路由伸出去的点
         this.least_pos = []; // least[to] = from  -> 记录目标点的起源点
         this.packet_pos = []; // 所有当前仍然在流动的数据包
@@ -480,6 +484,8 @@
             /* 函数声明：路由表更新
                 对所有顶点使用dij算法进行路由调整
             */
+           this.pre_route_table = this.route_table;
+
            /* !!! reset!!! */
             for(var i = 0; i <= 6; i++){
                 for(var j = 0; j <= 6; j++){
@@ -559,6 +565,7 @@
             for(var i = 0; i < this.route_vertex.length; i++)
                 if(this.route_vertex[i] == vertex_index)
                    pos = i
+
             /* 删除顶点 */
             this.route_vertex.splice(pos, 1)
 
@@ -570,7 +577,8 @@
             }
 
    
-            
+            this.route_table[vertex_index].removed = true;
+
             /* 更新对应路由表 */
             this.update_route_table();
 
