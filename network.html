@@ -108,13 +108,6 @@
                 </div>
             </div> 
             <div>
-                <p>简单的使用说明：</p>
-                <p>1. 你可以选择利用上方的下拉框，选择要操作的路由或者边；</p>
-                <p>2. 你也可以使用按键方式进行添加和删除具体操作如下：</p>
-                <p>     删除路由顶点 - 双击要操作的路由，黑色代表选中；选中后，按'D'键进行删除；</p>
-                <p>     删除边 - 双击要删除边上的中转包，黑色代表选中；选中后，按'D'键进行删除；</p>
-                <p>             或者你也可以单击选中两个包（分别为要删边的端点），灰色代表选中；选中后，按'D'键进行删除；</p>
-                <p>     添加边 - 单击选中两个包（分别为要增添边的端点），灰色代表选中；选中后，按'A'键进行添加；</p>
             </div>         
         </div>
 
@@ -141,13 +134,21 @@
 
             <div class="row">
                 <div class="col">
-                    <h3> 5.运行日志 </h3>
+                    <h3> 5.运行助手 </h3>
                     <textarea readonly style="width: 100%;height: 200px;" id = "running_log">
                         欢迎使用本软件！
                         本算法演示基于Djistra进行实现。每个路由器存在一张路由表，路由表的值，决定了相应包的下一个流向出口。根据当前的阻塞情况，路由表的出口值会实时更新！
                         每两个路由表之间可能会存在边，边的最大承载为4，一旦流经的数据包个数超过了该承载值，数据包就会在原地停留，即产生了相应的阻塞！
                         如果当前情况，没有相应的边可以让数据包到达终点，那么这些数据包就会被丢弃！
                         
+                        简单的使用说明：
+                        1. 你可以选择利用上方的下拉框，选择要操作的路由或者边；
+                        2. 你也可以使用按键方式进行添加和删除具体操作如下：
+                             删除路由顶点 - 双击要操作的路由，黑色代表选中；选中后，按'D'键进行删除；
+                             删除边 - 双击要删除边上的中转包，黑色代表选中；选中后，按'D'键进行删除；
+                                     或者你也可以单击选中两个包（分别为要删边的端点），灰色代表选中；选中后，按'D'键进行删除；
+                             添加边 - 单击选中两个包（分别为要增添边的端点），灰色代表选中；选中后，按'A'键进行添加；
+        
                     </textarea>
                 </div>
             </div>
@@ -161,6 +162,7 @@
 <script src="src/Connectionless_service.js"></script>
 
 <script src="js/jquery.js"></script>
+<script type="text/javascript" src="src/config.js"></script>
 <script type="text/javascript" src="js/raphael-min.js"></script>
 <script type="text/javascript" src="js/dracula_graffle.js"></script>
 <script type="text/javascript" src="js/dracula_graph.js"></script>
@@ -169,9 +171,9 @@
     function update_all_charts(init = false){
         update_route_table_vis(graph, init);
         update_pack_table_vis(graph);
-        graph.route_vertex.forEach(ele => {
-            update_router(ele, graph);
-        });
+        // graph.route_vertex.forEach(ele => {
+        //     update_router(ele, graph);
+        // });
 
 
         update_dropdown_menu(graph);
@@ -194,8 +196,17 @@
         if(source > target)
             [source, target] = [target, source];
         /* 添加边 */
+
+        var vis_pos_from = route_position[router_name.indexOf(source)];
+        var vis_pos_to = route_position[router_name.indexOf(target)];
+
         graph.add_edge(source, target);
-        add_pack_edge(vis_g, source, target, graph, route_position);
+
+        console.log("add_edge_event", source, target);
+        
+
+
+        add_pack_edge(vis_g, source, target, graph, vis_pos_from, vis_pos_to);
         // 删除包边
 
         // 一定是先画再query！
@@ -226,6 +237,9 @@
             [source, target] = [target, source];
 
         /* 删除边 */
+
+        console.log(source, "-> ", target);
+
         if(graph.remove_edge(source, target)){
             del_pack_edge(vis_g, source, target);
             renderer.draw();
@@ -241,13 +255,13 @@
             $(this).parent().children(".x-drop-btn").html('<span> 无</span><i class="material-icons">keyboard_arrow_down</i>');
             $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + " 无" + "</a>");
 
-            for(let i = 1; i <= 6 ; i ++ ){
-                if(graph.route_table[i].removed == false){
-                    var router_name = String.fromCharCode(65 + i - 1);
+            graph.route_vertex.forEach(ele => {
+                //if(graph.route_table[ele].removed == false){
+                    var router_name = String.fromCharCode(65 + ele - 1);
 
                     $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + router_name + "</a>");
-                }
-            }
+                //}
+            })
         })
 
         $(".dropdown-item").click(function(){
@@ -255,55 +269,102 @@
         });
     }
 
-    
-    /* 画布大小 */
-    var height = 700;
-    var width = 1000;
-    var send_pack_cnt = 1;
 
+
+    var routers = config["routers"];
+    var edges = config["edges"];
+    var start = config["start"].toUpperCase().charCodeAt() - 64;
+    var end = config["end"].toUpperCase().charCodeAt() - 64;
+
+    var height = config["height"];
+    var width = config["width"];
+
+    var max_pack_per_edge = config["max_pack_per_edge"];
     /* 位置 */
     function vis_pos(x, y){
         this.x = x;
         this.y = y;
     }
+
+    function edge_dir(from, to){
+        this.from = from;
+        this.to = to;
+    }
+    /* 转换后有用的数！*/
+    var route_position = [];
+    var router_name = [];
+    var edges_ = [];
+
+    routers.forEach(ele => {
+        var cur_pos = ele["position"];
+        /* 载入路由位置 */
+        route_position.push(new vis_pos(cur_pos[0], cur_pos[1]));
+        if(ele["routeName"] != ""){
+            /* 载入路由 */
+            router_name.push(ele["routeName"].toUpperCase().charCodeAt() - 64);
+        }
+        else{
+            router_name.push(0);
+        }
+    })
+
+    if(router_name.indexOf(start) == -1 ||router_name.indexOf(end) == -1){
+        alert("请检查你的配置文件，出现了错误的边点关系: 顶点或终点不在router顶点集合内");
+        window.location.reload();
+    };
+
+    edges.forEach(ele => {
+        var from = ele["from"].toUpperCase().charCodeAt() - 64;
+        var to = ele["to"].toUpperCase().charCodeAt() - 64;
+        if(router_name.indexOf(from) == -1 ||router_name.indexOf(to) == -1){
+            alert("请检查你的配置文件，出现了错误的边点关系：" + ele["from"] + " -> " + ele["to"]);
+            window.location.reload();
+        }
+        edges_.push(new edge_dir(from, to));
+
+    })
+    
+
+    /* 画布大小 */
+
+    var send_pack_cnt = 1;
+
+
     /* 路由位置 */
-    route_position = [new vis_pos(0, 0),
-                      new vis_pos(100, 200),
-                      new vis_pos(300, 150), 
-                      new vis_pos(350, 500),
-                      new vis_pos(500, 150),
-                      new vis_pos(700, 300),
-                      new vis_pos(900, 300),
-                      new vis_pos(400, 500),
-                      new vis_pos(400, 400)];
+
     
     dustbin_position = new vis_pos(50, 600);
     /* 算法初始化 */
-    var graph = new myGraph(1, 6, 4)
+    var graph = new myGraph(router_name, edges_, start, end, max_pack_per_edge)
     graph.init()
     graph.update_route_table();
 
     var vis_g = new Graph();
 
     /* 复现课本的图片 */
-    add_router(vis_g, 1, graph, route_position);
-    add_router(vis_g, 2, graph, route_position);
-    add_router(vis_g, 3, graph, route_position);
-    add_router(vis_g, 4, graph, route_position);
-    add_router(vis_g, 5, graph, route_position);
-    add_router(vis_g, 6, graph, route_position);
+    router_name.forEach((ele, index) => {
+        if(ele != 0){
+            add_router(vis_g, ele, graph, route_position[index]);
+        }
+    })
 
     add_dustbin(vis_g, dustbin_position);
 
-    add_pack_edge(vis_g, 1, 2, graph, route_position);
-    add_pack_edge(vis_g, 1, 3, graph, route_position);
-    add_pack_edge(vis_g, 2, 4, graph, route_position);
-    add_pack_edge(vis_g, 3, 4, graph, route_position);
-    add_pack_edge(vis_g, 3, 5, graph, route_position);
-    add_pack_edge(vis_g, 4, 5, graph, route_position);
-    add_pack_edge(vis_g, 5, 6, graph, route_position);
+    console.log(route_position);
+
+    edges_.forEach(ele => {
+        if(ele.from > ele.to)
+            [ele.from, ele.to] = [ele.to, ele.from];
 
     
+        var vis_pos_from = route_position[router_name.indexOf(ele.from)];
+        var vis_pos_to = route_position[router_name.indexOf(ele.to)];
+        // console.log(ele.from, ele.to);
+        // console.log(vis_pos_from, vis_pos_to);
+
+        add_pack_edge(vis_g, ele.from, ele.to, graph, vis_pos_from, vis_pos_to);
+    })
+
     var renderer = new Graph.Renderer.Raphael('canvas', vis_g, width, height);
     renderer.draw();
 
@@ -353,6 +414,8 @@
             alert("亲，您还没有选择要添加的边的两个顶点哦");
             return;
         }
+
+        
         add_edge_event(source, target);    
     })
 
@@ -400,21 +463,25 @@
         while(graph.new_pack_gen.length > 0){
             var cur_pack_id = graph.new_pack_gen.shift();
             add_package(vis_g, cur_pack_id, graph, route_position)
+            
         }
         renderer.draw();
 
         //移动到终点
         for(let i = 0 ; i < graph.achieved_pack.length; i ++ ){
             var cur_pack_id = graph.achieved_pack[i].id;//.shift();
-            var cur_router = 6;//graph.route_vertex.length;
-            pack_move_anime(vis_g, cur_pack_id, [cur_router, cur_router], route_position);
+            var cur_router = end;//graph.route_vertex.length;
+            var vis_pos_to;
+            var vis_pos_from = vis_pos_to = route_position[router_name.indexOf(cur_router)];
+
+            pack_move_anime(vis_g, cur_pack_id, vis_pos_from, vis_pos_to);
         }
 
 
         // 更新各个边
-        graph.route_vertex.forEach(ele => {
-            update_router(ele, graph);
-        });
+        // graph.route_vertex.forEach(ele => {
+        //     update_router(ele, graph);
+        // });
 
         graph.cur_edges.forEach(ele => {
             update_pack_edge(ele[0], ele[1], graph);
@@ -469,9 +536,9 @@
             var cur_pack = graph.cur_all_pack_pos[i];
             var move_pack_id = cur_pack.id;
             var cur_pos = graph.cur_all_pack_pos[i].lets_go()
-
+            
             console.log(graph.cur_all_pack_pos[i])
-
+            
             // 不移动位置尚未改变的包
             var need_move = true;
             for(let j = 0 ; j < graph.prev_all_pack_pos.length; j ++ ){
@@ -485,7 +552,10 @@
                 }
             }
             if(need_move){
-                pack_move_anime(vis_g, move_pack_id, cur_pos, route_position);
+                var vis_pos_from = route_position[router_name.indexOf(cur_pos[0])];
+                var vis_pos_to = route_position[router_name.indexOf(cur_pos[1])];
+
+                pack_move_anime(vis_g, move_pack_id, vis_pos_from, vis_pos_to);
             }
             
         }

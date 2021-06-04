@@ -6,8 +6,8 @@ function add_router(vis_g, route_id, my_graph, vis_pos){
      *         my_graph 算法逻辑
      *         vis_pos  路由位置
      */
-    var x = vis_pos[route_id].x;
-    var y = vis_pos[route_id].y;
+    var x = vis_pos.x;
+    var y = vis_pos.y;
 
     var cur_route_table = my_graph.route_table[route_id]
     var cur_router_name = String.fromCharCode(65 + route_id - 1);
@@ -40,7 +40,7 @@ function add_router(vis_g, route_id, my_graph, vis_pos){
                 tooltip.items[tooltip.items.length - 1].node.setAttribute("class", "router"+ cur_router_name);
 
                 /* 使这一个单元变成tooltip */
-                el.tooltip(tooltip)
+                //el.tooltip(tooltip)
                 el.node.setAttribute("id", "router-" + cur_router_name)
                 el.node.setAttribute("class", "router")
             });
@@ -116,7 +116,7 @@ function find_cur_edge_pack(from, to, cur_all_pack){
     return cur_edge_pack;
 }
 
-function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
+function add_pack_edge(vis_g, from, to, my_graph, vis_pos_from, vis_pos_to){
     /*
      * brief@ 画布上，路由之间连线（并设置一个顶点，用于显示当前该边上的包）
      *        边上的数为当前边上的包个数，点击可以看到具体内容 PAK: 3 (from A) 意思是：当前包号为3，上一时刻从A来
@@ -127,8 +127,8 @@ function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
      */
     var y_offset = 50;
     /* 两路由之间 */
-    var x = (vis_pos[from].x + vis_pos[to].x) / 2;
-    var y = (vis_pos[from].y + vis_pos[to].y) / 2 - y_offset;
+    var x = (vis_pos_from.x + vis_pos_to.x) / 2;
+    var y = (vis_pos_from.y + vis_pos_to.y) / 2 - y_offset;
     
     var cur_all_pack = my_graph.cur_all_pack_pos;
 
@@ -148,7 +148,7 @@ function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
             set.items[1].node.setAttribute("class", cur_pack_name+"_num");
             var rect_ = r.rect(0, 0, 80, 100).attr({"fill": "#fec", "stroke-width": 1, r : "9px", "x": -50, "y": -100 })
 
-            /* 添加包点提示 */
+            // /* 添加包点提示 */
             var tooltip = r.set().push(rect_);
 
 
@@ -164,11 +164,11 @@ function add_pack_edge(vis_g, from, to, my_graph, vis_pos){
             /* 给包点的文字起名，方便实时更新包点提示 */
             tooltip.items[tooltip.items.length - 1].node.setAttribute("class", cur_pack_name);
 
-            set.items[0].tooltip(tooltip);
+            //set.items[0].tooltip(tooltip);
 
             set.items[0].node.setAttribute("class", cur_pack_name + " pack_edge");
 
-            //set.items[0].deleteMenu(tooltip);
+            set.items[0].deleteMenu(tooltip);
 
 
             return set;
@@ -193,9 +193,14 @@ function update_pack_edge(from, to, my_graph){
      *         from, to 路由编号
      *         my_graph 算法逻辑
      */
+    if(from > to){
+        [from, to] = [to, from];
+    }
     var cur_all_pack = my_graph.cur_all_pack_pos;
-    var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
+    console.log(cur_all_pack);
 
+    var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
+    cur_edge_pack = cur_edge_pack.concat(find_cur_edge_pack(to, from, cur_all_pack))
     /*添加包节点内容*/
     var total_pack_contents = ""
     for(let i = 0 ; i < cur_edge_pack.length; i ++){
@@ -204,7 +209,12 @@ function update_pack_edge(from, to, my_graph){
         total_pack_contents += cur_line;
     };
 
+   
+
     var cur_pack_name = "edge_" + from + "-" + to;
+
+    console.log("cur_pack_name: " + cur_pack_name, cur_edge_pack);
+
     $("." + cur_pack_name).html(total_pack_contents);
     $("." + cur_pack_name + "_num").html("<tspan>" + "num: " + cur_edge_pack.length + "</tspan>");
 
@@ -308,7 +318,7 @@ function sleep(ms) {
 }
 
 
-async function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
+async function pack_move_anime(vis_g, pack_id, vis_from, vis_to, speed = 500){
     /*
     * brief@ 数据包移动动画
     * params@ vis_g 画布
@@ -322,12 +332,10 @@ async function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
     /* 为了让包不重合的太近，加了一个偏移量 */
     var offset_cood = Math.random() * 10;
 
-    var from_route = vis_pos_[cur_pos[0]];
+    var from_route = vis_from;
 
-    /* 计算包点 */
-    console.log(pack_name , cur_pos);
 
-    var to_pack_edge = new vis_pos((vis_pos_[cur_pos[0]].x + vis_pos_[cur_pos[1]].x) / 2, (vis_pos_[cur_pos[0]].y + vis_pos_[cur_pos[1]].y) / 2);
+    var to_pack_edge = new vis_pos((vis_from.x + vis_to.x) / 2, (vis_from.y + vis_to.y) / 2);
     //先移动到路由点
     vis_g.nodes[pack_name].shape.animate({'cx': from_route.x, 'cy': from_route.y, 'x': from_route.x, 'y': from_route.y}, speed);
     await sleep(speed);
@@ -375,88 +383,213 @@ function pack_move_to_dustbin_anime(vis_g, pack_id, vis_pos_, speed = 500){
     vis_g.nodes[pack_name].shape.animate({'cx': to_pack_edge.x + offset_cood, 'cy': to_pack_edge.y + offset_cood, 'x': to_pack_edge.x + offset_cood, 'y': to_pack_edge.y + offset_cood}, speed)
 }
 
+// function update_route_table_vis(my_graph, init = false){
+//     /*
+//     * brief@ 更新路由表
+//     * params@ 
+//     *         my_graph 核心算法结构体
+//     */
+//     function generateTableHead(table) {
+//         /* 更新表头 */
+//             let thead = table.createTHead();
+//             let row = thead.insertRow();
+//             my_graph.route_vertex.forEach(ele => {
+//                 let th = document.createElement("th");
+//                 if(ele > 0){
+//                     let text = document.createTextNode("Router" + String.fromCharCode(65 + ele - 1));
+//                     th.appendChild(text);
+//                 }
+//                 row.appendChild(th);
+
+//             });
+
+//             // for (let key = 0; key <= my_graph.vertex_node.length; key ++ ) {
+//             //     if(route_table[key].removed == true){
+//             //         continue;
+//             //     }
+
+//             //     let th = document.createElement("th");
+//             //     if(key > 0){
+//             //         let text = document.createTextNode("Router" + String.fromCharCode(65 + key - 1));
+//             //         th.appendChild(text);
+//             //     }
+//             //     row.appendChild(th);
+//             // }
+//         }
+
+//     function generateTable(table,  init) {
+//         /* 更新表内容 */
+//         my_graph.route_vertex.forEach(ele_i => {
+//             var which_router = String.fromCharCode(65 + ele_i - 1);
+
+//             let row = table.insertRow();
+//             /* 一行为各个路由器，到A的下一个路由入口！ */
+//             let cell = row.insertCell();
+//             let text = document.createTextNode(which_router);
+//             cell.appendChild(text);
+
+//             my_graph.route_vertex.forEach(ele_j => {
+//                 var which_entry = String.fromCharCode(65 + ele_j - 1);
+
+//                 if(route_table[ele_j].removed == true){
+//                     continue;
+//                 }
+//                 /* 上一时刻的路由表情况 */
+//                 pre_elemnt = pre_route_table[ele_j];
+//                 /* 逐个路由器遍历 */
+//                 element = route_table[ele_j];
+//                 cell = row.insertCell();
+
+//                 var cur_content = String.fromCharCode(65 + element.route_path[ele_i] - 1);
+//                 var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[ele_i] - 1);
+
+//                 // 当路由表内容发生改变，修改它的颜色
+//                 if(pre_elemnt.route_path[ele_i] != element.route_path[ele_i] && init == false){
+//                     text = document.createTextNode(cur_content + "<-" + pre_content);
+//                     cell.appendChild(text);
+//                     cell.style.color = "red";
+//                     cell.style.backgroundColor = "#e6e6e6";
+
+//                     $("textarea").append("[INFO]路由表"+ which_entry + "的" + which_router +"出口从" + pre_content + "变成了" + cur_content + "！\n"); 
+//                 }
+//                 else{
+//                     text = document.createTextNode(cur_content);
+//                     cell.appendChild(text);
+//                 }
+                
+//             });
+
+//         });
+
+//         // for (let key = 1; key < cur_len ; key ++) {
+//         //         if(route_table[key].removed == true){
+//         //             continue;
+//         //         }
+
+//         //         var which_router = String.fromCharCode(65 + key - 1);
+
+//         //         let row = table.insertRow();
+//         //         /* 一行为各个路由器，到A的下一个路由入口！ */
+//         //         let cell = row.insertCell();
+//         //         let text = document.createTextNode(which_router);
+//         //         cell.appendChild(text);
+
+//         //     for (let i = 1; i < cur_len ; i ++) {
+//         //         var which_entry = String.fromCharCode(65 + i - 1);
+
+//         //         if(route_table[i].removed == true){
+//         //             continue;
+//         //         }
+//         //         /* 上一时刻的路由表情况 */
+//         //         pre_elemnt = pre_route_table[i];
+//         //         /* 逐个路由器遍历 */
+//         //         element = route_table[i];
+//         //         cell = row.insertCell();
+
+//         //         var cur_content = String.fromCharCode(65 + element.route_path[key] - 1);
+//         //         var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[key] - 1);
+
+//         //         // 当路由表内容发生改变，修改它的颜色
+//         //         if(pre_elemnt.route_path[key] != element.route_path[key] && init == false){
+//         //             text = document.createTextNode(cur_content + "<-" + pre_content);
+//         //             cell.appendChild(text);
+//         //             cell.style.color = "red";
+//         //             cell.style.backgroundColor = "#e6e6e6";
+
+//         //             $("textarea").append("[INFO]路由表"+ which_entry + "的" + which_router +"出口从" + pre_content + "变成了" + cur_content + "！\n"); 
+//         //         }
+//         //         else{
+//         //             text = document.createTextNode(cur_content);
+//         //             cell.appendChild(text);
+//         //         }
+                
+//         //     }
+//         // }
+//     }
+//     /* 找到路由表 */
+//     var table = document.querySelector("#router-table");
+//     /* 清空 */
+//     table.removeChild(table.childNodes[0]);
+
+//     ////var cur_len = graph.route_vertex.length;
+//     /* 固定表大小，路由器只增不减... */
+//     generateTableHead(table);//cur_len);
+//     generateTable(table, init);//cur_len);
+// }
+
 function update_route_table_vis(my_graph, init = false){
-    /*
-    * brief@ 更新路由表
-    * params@ 
-    *         my_graph 核心算法结构体
-    */
-    function generateTableHead(table, route_table, cur_len) {
+
+    function generateTableHead(table) {
         /* 更新表头 */
             let thead = table.createTHead();
             let row = thead.insertRow();
-            for (let key = 0; key <= cur_len; key ++ ) {
-                if(route_table[key].removed == true){
-                    continue;
-                }
 
+            let th = document.createElement("th");
+            row.appendChild(th);
+
+            my_graph.route_vertex.forEach(ele => {
                 let th = document.createElement("th");
-                if(key > 0){
-                    let text = document.createTextNode("Router" + String.fromCharCode(65 + key - 1));
+                //if(ele > 0){
+                    let text = document.createTextNode("Router" + String.fromCharCode(65 + ele - 1));
                     th.appendChild(text);
-                }
+                //}
                 row.appendChild(th);
-            }
+
+            });
         }
-
-    function generateTable(table, route_table, pre_route_table, cur_len, init) {
-        /* 更新表内容 */
-        for (let key = 1; key <= cur_len ; key ++) {
-                if(route_table[key].removed == true){
-                    continue;
-                }
-
-                var which_router = String.fromCharCode(65 + key - 1);
+        function generateTable(table,  init) {
+            /* 更新表内容 */
+            my_graph.route_vertex.forEach(ele_i => {
+                var which_router = String.fromCharCode(65 + ele_i - 1);
 
                 let row = table.insertRow();
                 /* 一行为各个路由器，到A的下一个路由入口！ */
                 let cell = row.insertCell();
                 let text = document.createTextNode(which_router);
                 cell.appendChild(text);
-
-            for (let i = 1; i <= cur_len ; i ++) {
-                var which_entry = String.fromCharCode(65 + i - 1);
-
-                if(route_table[i].removed == true){
-                    continue;
-                }
-                /* 上一时刻的路由表情况 */
-                pre_elemnt = pre_route_table[i];
-                /* 逐个路由器遍历 */
-                element = route_table[i];
-                cell = row.insertCell();
-
-                var cur_content = String.fromCharCode(65 + element.route_path[key] - 1);
-                var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[key] - 1);
-
-                // 当路由表内容发生改变，修改它的颜色
-                if(pre_elemnt.route_path[key] != element.route_path[key] && init == false){
-                    text = document.createTextNode(cur_content + "<-" + pre_content);
-                    cell.appendChild(text);
-                    cell.style.color = "red";
-                    cell.style.backgroundColor = "#e6e6e6";
-
-                    $("textarea").append("[INFO]路由表"+ which_entry + "的" + which_router +"出口从" + pre_content + "变成了" + cur_content + "！\n"); 
-                }
-                else{
-                    text = document.createTextNode(cur_content);
-                    cell.appendChild(text);
-                }
                 
-            }
+
+                my_graph.route_vertex.forEach(ele_j => {
+                    var which_entry = String.fromCharCode(65 + ele_j - 1);
+
+
+                    /* 上一时刻的路由表情况 */
+                    pre_elemnt = my_graph.pre_route_table[ele_j];
+                    /* 逐个路由器遍历 */
+                    element = my_graph.route_table[ele_j];
+                    cell = row.insertCell();
+
+                    var cur_content = String.fromCharCode(65 + element.route_path[ele_i] - 1);
+                    var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[ele_i] - 1);
+
+                    // 当路由表内容发生改变，修改它的颜色
+                    if(pre_elemnt.route_path[ele_i] != element.route_path[ele_i] && init == false){
+                        text = document.createTextNode(cur_content + "<-" + pre_content);
+                        cell.appendChild(text);
+                        cell.style.color = "red";
+                        cell.style.backgroundColor = "#e6e6e6";
+
+                        $("textarea").append("[INFO]路由表"+ which_entry + "的" + which_router +"出口从" + pre_content + "变成了" + cur_content + "！\n"); 
+                    }
+                    else{
+                        text = document.createTextNode(cur_content);
+                        cell.appendChild(text);
+                    }
+                    
+                });
+
+            });
         }
+        /* 找到路由表 */
+        var table = document.querySelector("#router-table");
+        /* 清空 */
+        table.removeChild(table.childNodes[0]);
+
+        /* 固定表大小，路由器只增不减... */
+        generateTableHead(table);
+        generateTable(table, init);
+        
     }
-    /* 找到路由表 */
-    var table = document.querySelector("#router-table");
-    /* 清空 */
-    table.removeChild(table.childNodes[0]);
-
-    ////var cur_len = graph.route_vertex.length;
-    /* 固定表大小，路由器只增不减... */
-    generateTableHead(table, my_graph.route_table, 6);//cur_len);
-    generateTable(table, my_graph.route_table, my_graph.pre_route_table, 6, init);//cur_len);
-}
-
 function update_pack_table_vis(my_graph){
     /*
     * brief@ 更新包表
@@ -526,6 +659,7 @@ function update_pack_table_vis(my_graph){
     generateTableHead(pack_table_body, ["是否显示", "数据包id", "数据包流通路径"])
     generateTable(pack_table_body, cur_all_pack)
     
+    console.log(cur_all_pack)
 
     /* 当全选框被✔，所有都✔ */
     $(".all_pack_show").change(function() { 

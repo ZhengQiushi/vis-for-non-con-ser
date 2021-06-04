@@ -42,10 +42,11 @@
     }
 
     /* 路由表类 */
-    var max_vertex_node = 1000;
+    
     var cur_vertex_node_num = 6;
+    
 
-    function RouteTable(route_id)
+    function RouteTable(route_id, max_vertex_node)
     {
         /* 成员变量
             route_id: 路由表的id
@@ -53,8 +54,8 @@
         */
         this.route_id = String.fromCharCode(65 + route_id - 1)
         this.route_path = [];
-        this.removed = false;
-
+        this.removed = true;
+        
         /* 函数声明：初始化路由数组 
         */
         this.init = function(){
@@ -112,6 +113,8 @@
         */
         this.get_pos = function(){             
             /* 保证返回的edge1 小于 edge2 e.vis_g. [1-2]*/ 
+            return [this.edge1, this.edge2];
+
             if(this.edge1 < this.edge2)
                 return [this.edge1, this.edge2]
             return [this.edge2, this.edge1]
@@ -127,7 +130,7 @@
         }
 
         this.get_traveled = function(){
-            this.traveled_path.push(this.get_pos()[0]);
+            this.traveled_path.push(this.get_pos()[0]);//
             // this.from = this.to;
             // this.to = this.get_pos()[0];
         }
@@ -145,9 +148,13 @@
     }
 
     /* 路由器的无环图 */
-    function myGraph(start, terminal, max_data_packet_cnt)
+    function myGraph(router_name, edges_, start, terminal, max_data_packet_cnt)
     {
-        /* 成员变量
+        /* 
+        参数：
+            router_name：数字，A->1
+            edges_：.from .to
+        成员变量
             start: 起始顶点
             terminal: 终点
             limit_packet: 每条传送线上所能有的数据包上限
@@ -177,22 +184,37 @@
 
         this.died_pack = []; // 死了
 
+        this.max_vertex_node = 0;
+
+        router_name.forEach(ele => {
+            if(this.max_vertex_node < ele){
+                this.max_vertex_node = ele;
+            }
+        })
 
         this.cur_edges = []; // 每个都是[1, 2] 1 < 2
         /* 函数声明：初始化图结构
         */
         this.init = function(){
-            for(var i = 0; i < max_vertex_node; i++){
+            for(var i = 0; i <= this.max_vertex_node; i++){
                 this.least_pos.push(0);
                 // 初始化
-                this.route_table.push(new RouteTable(i))
+                this.route_table.push(new RouteTable(i, this.max_vertex_node))
                 this.route_table[this.route_table.length - 1].init();
                 // 某一个路由的所有边？
                 this.route_edge.push([]);
             }
-            for(var i = 1; i <= cur_vertex_node_num; i++){
-                this.route_vertex.push(i);
-            }
+            router_name.forEach(element => {
+                if(element != 0){
+                    this.route_vertex.push(element);
+                    console.log(this.max_vertex_node)
+                    console.log(this.route_table[element])
+                    this.route_table[element].removed = false;
+                }
+            });
+            // for(var i = 1; i <= cur_vertex_node_num; i++){
+            //     this.route_vertex.push(i);
+            // }
             /*
              * A -> 1
              * B -> 2
@@ -201,43 +223,16 @@
              * E -> 5
              * F -> 6
              */
-            this.route_edge[1].push(new ArcEdge(2, 1));
-            this.route_edge[2].push(new ArcEdge(1, 1));
-            this.cur_edges.push([1,2]);
-
-            this.route_edge[1].push(new ArcEdge(3, 1));
-            this.route_edge[3].push(new ArcEdge(1, 1));
-            this.cur_edges.push([1,3]);
-
-            this.route_edge[2].push(new ArcEdge(4, 1));
-            this.route_edge[4].push(new ArcEdge(2, 1));
-            this.cur_edges.push([2,4]);
-
-            this.route_edge[3].push(new ArcEdge(4, 1));
-            this.route_edge[4].push(new ArcEdge(3, 1));
-            this.cur_edges.push([3,4]);
-
-            this.route_edge[3].push(new ArcEdge(5, 1));
-            this.route_edge[5].push(new ArcEdge(3, 1));
-            this.cur_edges.push([3,5]);
-
-            this.route_edge[4].push(new ArcEdge(5, 1));
-            this.route_edge[5].push(new ArcEdge(4, 1));
-            this.cur_edges.push([4,5]);
-
-            this.route_edge[5].push(new ArcEdge(6, 1));
-            this.route_edge[6].push(new ArcEdge(5, 1));
-            this.cur_edges.push([5,6]);
-
+            var default_weight = 1;
+            edges_.forEach(ele => {
+                console.log(ele);
+                this.route_edge[ele.from].push(new ArcEdge(ele.to, default_weight));
+                this.route_edge[ele.to].push(new ArcEdge(ele.from, default_weight));
+                this.cur_edges.push([ele.from,ele.to]);
+                
+            })
         }
 
-        this.show_route_table = function(route_id){
-            console.log("Table: ", String.fromCharCode(65 + route_id - 1));
-            for(let i = 1 ; i <= this.route_vertex.length; i ++){
-                console.log("  ", String.fromCharCode(65 + i - 1), ": ", 
-                    String.fromCharCode(65 + this.route_table[route_id].get_route(i) - 1))
-            }
-        }
 
         this.find_entry = function(des_vertex, front_vertex)
         {
@@ -250,7 +245,7 @@
             if(des_vertex == front_vertex || this.least_pos[des_vertex] == -1)
                 return -1
             var visit = []
-            for(var i = 0; i < max_vertex_node; i++)
+            for(var i = 0; i <= this.max_vertex_node; i++)
                 visit.push(0)
             
             for(var i = 0; i < this.route_edge[front_vertex].length; i++)
@@ -280,6 +275,9 @@
             for(var i = 0; i < this.packet_pos.length; i++){
                 
                 var arr = this.packet_pos[i].get_pos() // arr[from，to]
+                
+                console.log("data_packet_move: ", arr[0], arr[1]);
+
                 /* 无效的数据包，位置在原点！ */
                 if(arr[0] == 0 && arr[1] == 0){
                     continue;
@@ -315,9 +313,9 @@
                 /* 使用tmp_arr 记录原位置 */
                 var tmp_arr = [arr[0], arr[1]];
                 /* 此时的arr数组中的数据为数据包的新位置*/
-                arr = [this.route_table[arr[1]].get_route(this.terminal), arr[1]]
+                arr = [arr[1], this.route_table[arr[1]].get_route(this.terminal)]
                 
-                if(arr[0] == -1){
+                if(arr[1] == -1){
                     // 包无法到达  认为直接死掉
                     this.packet_pos[i].set_pos(0, 0);
                     this.died_pack.push(i); // 死了
@@ -337,7 +335,7 @@
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
                         if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
                             
-                            console.log(this.packet_pos[i].id, ": ", arr[0], "-> ", arr[1], "阻塞啦！" );
+                            
                             this.congestion_packets.push(this.packet_pos[i]);
 
                             for(var k = 0; k < this.route_edge[tmp_arr[0]].length; k++){
@@ -346,6 +344,9 @@
                             }
                         }
                         else{
+                            console.log(this.packet_pos[i].id, ": ", arr[0], "-> ", arr[1], "阻塞啦！" );
+
+
                             this.route_edge[arr[0]][j].set_weight(this.route_edge[arr[0]][j].get_weight() + 1)
                             /* 更新包的位置 */
                             this.packet_pos[i].set_pos(arr[0], arr[1])
@@ -358,8 +359,7 @@
                     if(this.route_edge[arr[1]][j].get_to() == arr[0]){
                         if(this.route_edge[arr[1]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
                             
-                            
-
+                        
                             for(var k = 0; k < this.route_edge[tmp_arr[1]].length; k++){
                                 if(this.route_edge[tmp_arr[1]][k].get_to() == tmp_arr[0])
                                     this.route_edge[tmp_arr[1]][k].set_weight(this.route_edge[tmp_arr[1]][k].get_weight() + 1)
@@ -445,7 +445,7 @@
             var visit = []
             var dis = []
 
-            for(var i = 0; i < max_vertex_node; i++){
+            for(var i = 0; i <= this.max_vertex_node; i++){
                 visit.push(0)
                 dis.push(100000)
                 this.least_pos[i] = -1 // 表示无法找到最短路径
@@ -643,7 +643,7 @@
         this.add_edge = function(from, to){
             /* 首先对from to两个顶点进行检测 查看是否有新顶点 */
             var visit = []
-            for(var i = 0; i < max_vertex_node; i++)
+            for(var i = 0; i <= this.max_vertex_node; i++)
                 visit.push(0)
             for(var i = 0; i < this.route_vertex.length; i++)
                 visit[this.route_vertex[i]] = 1
