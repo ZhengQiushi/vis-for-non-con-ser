@@ -106,7 +106,16 @@
                     
                     </div>
                 </div>
-            </div>          
+            </div> 
+            <div>
+                <p>简单的使用说明：</p>
+                <p>1. 你可以选择利用上方的下拉框，选择要操作的路由或者边；</p>
+                <p>2. 你也可以使用按键方式进行添加和删除具体操作如下：</p>
+                <p>     删除路由顶点 - 双击要操作的路由，黑色代表选中；选中后，按'D'键进行删除；</p>
+                <p>     删除边 - 双击要删除边上的中转包，黑色代表选中；选中后，按'D'键进行删除；</p>
+                <p>             或者你也可以单击选中两个包（分别为要删边的端点），灰色代表选中；选中后，按'D'键进行删除；</p>
+                <p>     添加边 - 单击选中两个包（分别为要增添边的端点），灰色代表选中；选中后，按'A'键进行添加；</p>
+            </div>         
         </div>
 
         <div class="col">
@@ -122,11 +131,24 @@
             <div class="row" >
                 <div class="col">
                     <h3> 4.当前数据包 </h3>
-                    <div class="table-responsive" style="max-height: 400px;
+                    <div class="table-responsive" style="max-height: 200px; min-height: 200px;
                     overflow-y: scroll;">
                         <table class="table" id = "pack_table">
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <h3> 5.运行日志 </h3>
+                    <textarea readonly style="width: 100%;height: 200px;" id = "running_log">
+                        欢迎使用本软件！
+                        本算法演示基于Djistra进行实现。每个路由器存在一张路由表，路由表的值，决定了相应包的下一个流向出口。根据当前的阻塞情况，路由表的出口值会实时更新！
+                        每两个路由表之间可能会存在边，边的最大承载为4，一旦流经的数据包个数超过了该承载值，数据包就会在原地停留，即产生了相应的阻塞！
+                        如果当前情况，没有相应的边可以让数据包到达终点，那么这些数据包就会被丢弃！
+                        
+                    </textarea>
                 </div>
             </div>
         </div>
@@ -154,25 +176,11 @@
 
         update_dropdown_menu(graph);
 
-        // 删除包边
-        $('rect.pack_edge').on("dblclick", function(){
-            //删除增添边
-            cur_edge_chose = [];
-
-            console.log("hhhhh")
-            if($(this).css("fill") == chosen){
-                // 选了本身，状态切换
-                $(this).css("fill", clear);
-            }
-            else{
-                // 选了其他的
-                $('rect.router').css("fill", clear);
-                $('rect.pack_edge').css("fill", clear);
-                $(this).css("fill", chosen);
-            }
-        })
-
+        var textarea = document.getElementById('running_log');
+        textarea.scrollTop = textarea.scrollHeight;
     }
+
+
     function remove_router_event(source){
         if(graph.remove_vertex(source)){
             /* 如果移除成功，就从图上删掉 */
@@ -188,8 +196,28 @@
         /* 添加边 */
         graph.add_edge(source, target);
         add_pack_edge(vis_g, source, target, graph, route_position);
+        // 删除包边
 
+        // 一定是先画再query！
         renderer.draw();
+
+
+        $(".edge_"+source+"-"+target).on("dblclick", function(){
+            //删除增添边
+            cur_edge_chose = [];
+            if($(this).css("fill") == chosen){
+                // 选了本身，状态切换
+                $(this).css("fill", clear);
+            }
+            else{
+                // 选了其他的
+                $('rect.router').css("fill", clear);
+                $('rect.pack_edge').css("fill", clear);
+
+                $(this).css("fill", chosen);
+            }
+        })
+
         // 更新可视化路由表
         update_all_charts();
     }
@@ -231,6 +259,8 @@
     /* 画布大小 */
     var height = 700;
     var width = 1000;
+    var send_pack_cnt = 1;
+
     /* 位置 */
     function vis_pos(x, y){
         this.x = x;
@@ -247,6 +277,7 @@
                       new vis_pos(400, 500),
                       new vis_pos(400, 400)];
     
+    dustbin_position = new vis_pos(50, 600);
     /* 算法初始化 */
     var graph = new myGraph(1, 6, 4)
     graph.init()
@@ -261,6 +292,8 @@
     add_router(vis_g, 4, graph, route_position);
     add_router(vis_g, 5, graph, route_position);
     add_router(vis_g, 6, graph, route_position);
+
+    add_dustbin(vis_g, dustbin_position);
 
     add_pack_edge(vis_g, 1, 2, graph, route_position);
     add_pack_edge(vis_g, 1, 3, graph, route_position);
@@ -332,27 +365,35 @@
             return;
         }
 
+        $("textarea").append("\n@@本次是第 " + send_pack_cnt + "次发送， 发送了 " + per_pack_num + "个@@\n");
+        send_pack_cnt++;
         //图形化： 删除已经到达目的地的
         while(graph.achieved_pack.length > 0){
-            var cur_pack_id = graph.achieved_pack.shift();
+            var cur_pack_id = graph.achieved_pack.shift().id;
             del_pack(vis_g, cur_pack_id);
         }
-        
+
         //图形化： 删除已死了的
         while(graph.died_pack.length > 0){
             var cur_pack_id = graph.died_pack.shift();
             del_pack(vis_g, cur_pack_id);
         }
-
+        
         //算法：
         graph.data_packet_move(per_pack_num);
+
+        // 移动到dustbin
+        for(let i = 0; i < graph.died_pack.length; i ++ ){
+            var cur_pack_id = graph.died_pack[i];
+            pack_move_to_dustbin_anime(vis_g, cur_pack_id, dustbin_position);
+            $("textarea").append("[WARNING]数据包 " + cur_pack_id + " 丢失了!\n")
+
+        }
 
         /* 更新上一时刻的包和这一时刻的包*/
         graph.prev_all_pack_pos = hardCopy(graph.cur_all_pack_pos);
         var ret = graph.get_data_packet()
         graph.cur_all_pack_pos = hardCopy(ret);
-
-
 
 
         //移动新生成的包
@@ -364,7 +405,7 @@
 
         //移动到终点
         for(let i = 0 ; i < graph.achieved_pack.length; i ++ ){
-            var cur_pack_id = graph.achieved_pack[i];//.shift();
+            var cur_pack_id = graph.achieved_pack[i].id;//.shift();
             var cur_router = 6;//graph.route_vertex.length;
             pack_move_anime(vis_g, cur_pack_id, [cur_router, cur_router], route_position);
         }
@@ -379,16 +420,28 @@
             update_pack_edge(ele[0], ele[1], graph);
         })
 
-        
+        // 包被阻塞了，一闪一闪亮晶晶
+        while(graph.congestion_packets.length > 0){
+            var cur_pack = graph.congestion_packets.shift();
+            var cur_pack_id = cur_pack.id;
+
+            console.log("cur_pack_id: ", cur_pack_id);
+            pack_congested(vis_g, cur_pack_id);
+            var source = String.fromCharCode(64 + cur_pack.get_pos()[0]);
+            var target = String.fromCharCode(64 + cur_pack.get_pos()[1]);
+
+            $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在边" + source +"-" + target + "!\n")
+        }
 
 
+        //防止包乱走...
             for(let j = 0; j < graph.cur_all_pack_pos.length; j ++ ){
                 var cur_pack = graph.cur_all_pack_pos[j];
                 var remain = true;
                 for(let i = 0; i < graph.prev_all_pack_pos.length; i ++ ){
                     var pre_pack = graph.prev_all_pack_pos[i];
                     if(pre_pack.id == cur_pack.id){
-
+                        // 中间一点必然是承前启后的
                         if(cur_pack.edge1 == pre_pack.edge1 || cur_pack.edge1 == pre_pack.edge2){
                             cur_pack.from = cur_pack.edge1;
                             cur_pack.to = cur_pack.edge2;
@@ -437,15 +490,8 @@
             
         }
         // 更新可视化路由表
-        update_route_table_vis(graph);
-        update_pack_table_vis(graph);
-        
-        
+        update_all_charts(init = false)
     })
-
-
-
-
 
 
 
@@ -514,13 +560,30 @@ var cur_edge_chose = [];
  });
 
 
+        // 删除包边,同一个监听函数可能会被多次重载！
+        $('rect.pack_edge').on("dblclick", function(){
+            //删除增添边
+            cur_edge_chose = [];
 
+            if($(this).css("fill") == chosen){
+                // 选了本身，状态切换
+                $(this).css("fill", clear);
+            }
+            else{
+                // 选了其他的
+                $('rect.router').css("fill", clear);
+                $('rect.pack_edge').css("fill", clear);
+
+                $(this).css("fill", chosen);
+            }
+
+        })
 
 
 $(document).keypress(function(e) {
     console.log(e.which);
 
-    if(e.which == "100"){
+    if(e.which == "100" || e.which == "68"){
         // 选择路由删除
         $('rect.router').each(function(){
             if($(this).css("fill") == chosen){
@@ -566,7 +629,7 @@ $(document).keypress(function(e) {
     
     
     }
-    else if(e.which == 97){
+    else if(e.which == 97 || e.which == 65){
         // 选择两个路由添加边
         if(cur_edge_chose.length == 2){
             var source = cur_edge_chose[0].split("-")[1];

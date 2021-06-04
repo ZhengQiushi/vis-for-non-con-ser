@@ -53,6 +53,23 @@ function add_router(vis_g, route_id, my_graph, vis_pos){
     });
 }
 
+function add_dustbin(vis_g, vis_pos){
+    var x = vis_pos.x;
+    var y = vis_pos.y;
+
+    var render = function(r, n) {
+        /* 自定义路由的样子 */
+            var set = r.set()
+                .push(r.rect(n.point[0]-30, n.point[1]-13, 62, 66).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y }))
+                .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px",  "x": x + 10,"y": y - 10})); 
+            return set;
+        };
+
+    vis_g.addNode("dustbin", {
+        label : "dustbin",
+        render : render
+    });
+}
 
 function update_router(route_id, my_graph){
     /*
@@ -318,6 +335,45 @@ async function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
     vis_g.nodes[pack_name].shape.animate({'cx': to_pack_edge.x + offset_cood, 'cy': to_pack_edge.y + offset_cood, 'x': to_pack_edge.x + offset_cood, 'y': to_pack_edge.y + offset_cood}, speed)
 }
 
+async function pack_congested(vis_g, pack_id, speed = 500){
+    var pack_name = "pack_" + pack_id;
+
+    var cur_pack = $("#" + pack_name);
+
+    var origin_color = cur_pack.css("fill");
+
+    // 反复闪烁以代表被阻塞了
+    for(let i = 0; i < 2; i ++ ){
+        await sleep(speed);
+        cur_pack.css("fill", "#000");
+        await sleep(speed);
+        cur_pack.css("fill", origin_color);
+    }
+
+    //再移动到包点
+    //vis_g.nodes[pack_name].shape.animate({'cx': to_pack_edge.x + offset_cood, 'cy': to_pack_edge.y + offset_cood, 'x': to_pack_edge.x + offset_cood, 'y': to_pack_edge.y + offset_cood}, speed)
+
+}
+
+function pack_move_to_dustbin_anime(vis_g, pack_id, vis_pos_, speed = 500){
+    /*
+    * brief@ 数据包移动动画
+    * params@ vis_g 画布
+    *         pack_id  包编号
+    *         cur_pos  该包的当前位置(from,to)
+    *         vis_pos_ 路由位置
+    *         speed    移动速度
+    */
+    var pack_name = "pack_" + pack_id;
+
+    /* 为了让包不重合的太近，加了一个偏移量 */
+    var offset_cood = Math.random() * 10;
+
+    var to_pack_edge = vis_pos_;
+
+    //再移动到包点
+    vis_g.nodes[pack_name].shape.animate({'cx': to_pack_edge.x + offset_cood, 'cy': to_pack_edge.y + offset_cood, 'x': to_pack_edge.x + offset_cood, 'y': to_pack_edge.y + offset_cood}, speed)
+}
 
 function update_route_table_vis(my_graph, init = false){
     /*
@@ -350,13 +406,17 @@ function update_route_table_vis(my_graph, init = false){
                     continue;
                 }
 
+                var which_router = String.fromCharCode(65 + key - 1);
+
                 let row = table.insertRow();
                 /* 一行为各个路由器，到A的下一个路由入口！ */
                 let cell = row.insertCell();
-                let text = document.createTextNode(String.fromCharCode(65 + key - 1));
+                let text = document.createTextNode(which_router);
                 cell.appendChild(text);
 
             for (let i = 1; i <= cur_len ; i ++) {
+                var which_entry = String.fromCharCode(65 + i - 1);
+
                 if(route_table[i].removed == true){
                     continue;
                 }
@@ -365,13 +425,22 @@ function update_route_table_vis(my_graph, init = false){
                 /* 逐个路由器遍历 */
                 element = route_table[i];
                 cell = row.insertCell();
-                text = document.createTextNode(String.fromCharCode(65 + element.route_path[key] - 1));
-                cell.appendChild(text);
+
+                var cur_content = String.fromCharCode(65 + element.route_path[key] - 1);
+                var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[key] - 1);
 
                 // 当路由表内容发生改变，修改它的颜色
                 if(pre_elemnt.route_path[key] != element.route_path[key] && init == false){
+                    text = document.createTextNode(cur_content + "<-" + pre_content);
+                    cell.appendChild(text);
                     cell.style.color = "red";
                     cell.style.backgroundColor = "#e6e6e6";
+
+                    $("textarea").append("[INFO]路由表"+ which_entry + "的" + which_router +"出口从" + pre_content + "变成了" + cur_content + "！\n"); 
+                }
+                else{
+                    text = document.createTextNode(cur_content);
+                    cell.appendChild(text);
                 }
                 
             }
@@ -449,7 +518,7 @@ function update_pack_table_vis(my_graph){
         }
     }
 
-    var cur_all_pack = my_graph.cur_all_pack_pos;
+    var cur_all_pack = my_graph.achieved_pack.concat(my_graph.cur_all_pack_pos);;
     /* 找表并清空内容 */
     var pack_table_body = document.querySelector("#pack_table");
     pack_table_body.removeChild(pack_table_body.childNodes[0]);

@@ -166,6 +166,8 @@
         this.route_table = [];
         this.pre_route_table = []; // 上一时刻的路由表情况
 
+        this.congestion_packets = [];
+
         this.route_edge = []; // route_edge[index][....] 下标的index的路由伸出去的点
         this.least_pos = []; // least[to] = from  -> 记录目标点的起源点
         this.packet_pos = []; // 所有当前仍然在流动的数据包
@@ -279,8 +281,10 @@
                 
                 var arr = this.packet_pos[i].get_pos() // arr[from，to]
                 /* 无效的数据包，位置在原点！ */
-                if(arr[0] == 0 && arr[1] == 0)
+                if(arr[0] == 0 && arr[1] == 0){
                     continue;
+                }
+                    
                 
                 /*
                  * 原来的权重被去除！
@@ -302,7 +306,9 @@
                 if(arr[0] == this.terminal || arr[1] == this.terminal){
                     this.packet_pos[i].set_pos(0, 0)
                     //
-                    this.achieved_pack.push(i);
+                    this.packet_pos[i].traveled_path.push(this.terminal);
+                    this.achieved_pack.push(this.packet_pos[i]);
+                    
                     continue;
                 }
                 
@@ -315,6 +321,7 @@
                     // 包无法到达  认为直接死掉
                     this.packet_pos[i].set_pos(0, 0);
                     this.died_pack.push(i); // 死了
+                    console.log("死了！",  this.packet_pos[i])
                     continue
                 }
                 else if(arr[0] == tmp_arr[0] && arr[1] == tmp_arr[1]){
@@ -329,6 +336,10 @@
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++){
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
                         if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
+                            
+                            console.log(this.packet_pos[i].id, ": ", arr[0], "-> ", arr[1], "阻塞啦！" );
+                            this.congestion_packets.push(this.packet_pos[i]);
+
                             for(var k = 0; k < this.route_edge[tmp_arr[0]].length; k++){
                                 if(this.route_edge[tmp_arr[0]][k].get_to() == tmp_arr[1])
                                     this.route_edge[tmp_arr[0]][k].set_weight(this.route_edge[tmp_arr[0]][k].get_weight() + 1)
@@ -346,6 +357,9 @@
                 for(var j = 0; j < this.route_edge[arr[1]].length; j++){
                     if(this.route_edge[arr[1]][j].get_to() == arr[0]){
                         if(this.route_edge[arr[1]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
+                            
+                            
+
                             for(var k = 0; k < this.route_edge[tmp_arr[1]].length; k++){
                                 if(this.route_edge[tmp_arr[1]][k].get_to() == tmp_arr[0])
                                     this.route_edge[tmp_arr[1]][k].set_weight(this.route_edge[tmp_arr[1]][k].get_weight() + 1)
@@ -367,7 +381,7 @@
                 var cur_new_pack = new Packet_Pos(this.start, arr[1]);
                 
 
-                
+                var is_congested = true;
                 for(var i = 0; i < this.route_edge[this.start].length; i++){
                     if(this.route_edge[arr[0]][i].get_to() == arr[1] && this.route_edge[arr[0]][i].get_weight() != this.limit_packet){
                         /* 更新边权 */
@@ -377,36 +391,27 @@
                                 this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() + 1)
                             }
                         }
-                        this.new_pack_gen.push(cur_new_pack.id);
                         cur_new_pack.get_traveled();
-                        this.packet_pos.push(cur_new_pack);
                         find_ = true
                         break;
                     }
-                    else{
-
-
+                    else if(this.route_edge[arr[0]][i].get_weight() == this.limit_packet){
+                        // console.log(cur_new_pack.id, ": ", arr[0], "-> ", arr[1], "阻塞在起点！" );
                     }
                 }
+                this.new_pack_gen.push(cur_new_pack.id);
+                this.packet_pos.push(cur_new_pack);
                 /* 循环完毕都找不到 则直接退出即可 */
                 if(find_ == false){
-                    // this.new_pack_gen.push(cur_new_pack.id);
-                    // this.packet_pos.push(cur_new_pack);
-                    console.log(console.log(this.init_packet_cnt, " fuck1!!!", cur_new_pack));
-                    cur_new_pack.edge2 = cur_new_pack.edge1 = 1;
-
-                    this.new_pack_gen.push(cur_new_pack.id);
-                    this.packet_pos.push(cur_new_pack);
+                    //阻塞住
+                    cur_new_pack.edge1 = cur_new_pack.edge2 = 1;
+                    var congest_pack = hardCopy(cur_new_pack);
+                    // 打印阻塞的方向
+                    congest_pack.edge2 = this.route_table[1].get_route(6); // 
+                    this.congestion_packets.push(congest_pack);
                 }
                 //     break;
                 this.init_packet_cnt -= 1
-                
-                /* 更新数据包位置信息 */
-                // if(cur_new_pack.edge2 == -1){
-                //     cur_new_pack.edge2 = 1;
-                // }
-                
-                /* 更新计数器 */
 
             }
             
