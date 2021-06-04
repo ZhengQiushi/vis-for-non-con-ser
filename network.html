@@ -7,7 +7,10 @@
     <title>Connectionless service</title>
     <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="./css/mydropdown.css">
+    <link rel="stylesheet" href="./css/x-dropdown.css">
 
+    <link rel="stylesheet" href="./css/material-icons.min.css">
 
 </head>
 <body>
@@ -20,14 +23,79 @@
             <div class="row">
                 <div class="col">
                     <h3> 1.你可以进行的操作 </h3>
-                    <br/>
-                    <label>(注意输入范围是1-6，分别对应A-E)</label>
-                    <br/>
-                    <label>请输入删除节点的编号 <input type="number" class="remove_node"></label> <input type="button" class="1" value="删除节点"> <br/>
-                    <label>请输入删除边的编号   <input type="number" class="remove_edge_from"><input type="number" class="remove_edge_to"></label> <input type="button" class="2" value="删除边"> <br/>
-                    <label>请输入增加边的编号   <input type="number" class="add_edge_from"><input type="number" class="add_edge_to"></label> <input type="button" class="3" value="增加边"><br/>
-                    <label>本轮发送数据包的个数     <input type="number" class="send"></label> <input type="button" class="4" value="发送包"> <br/>
-                
+                    <div class="row">
+                        <div class="col">
+                            <div>
+                                <div class="row ">
+                                    <div class="col">
+                                        <p style="  padding-top: 11px;margin-bottom: 0px;">请输入删除节点的编号<br /></p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn delete_node_val" data-toggle="dropdown"><span>无</span><i class="material-icons">keyboard_arrow_down</i></div>
+                                        <div class="dropdown-menu cur_router_options" role="menu">
+                                            <a class="dropdown-item" role="presentation" href="#">xxxxx1</a>
+                                        </div>
+                                    </div>
+                                    <div class="col" style="padding-top: 10px; padding-left: 270px;"><input type="button" class="1" value="删除节点"> </div>
+
+                                </div>
+
+                                <div class="row ">
+                                    <div class="col">
+                                        <p style="padding-top: 11px;margin-bottom: 0px;">请输入删除边的编号<br /></p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn delete_edge_val1" data-toggle="dropdown" aria-expanded="false"><span>无</span><i class="material-icons">keyboard_arrow_down</i>
+                                            
+                                        </div>
+                                        <div class="dropdown-menu cur_router_options" role="menu">
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn delete_edge_val2" data-toggle="dropdown" aria-expanded="false"><span >无</span><i class="material-icons">keyboard_arrow_down</i></div>
+                                        <div class="dropdown-menu cur_router_options" role="menu">
+                                            <a class="dropdown-item" role="presentation" href="#">xxxxx1</a>
+                                            <a class="dropdown-item" role="presentation" href="#">xxxx2</a>
+                                            <a class="dropdown-item" role="presentation" href="#">xxxxxx3</a>
+                                        </div>
+                                    </div>
+                                    <div class="col" style="padding-top: 10px;"><input type="button" class="2" value="删除边"></div>
+                                </div>
+
+                                <div class="row ">
+                                    <div class="col">
+                                        <p style="padding-top: 11px;margin-bottom: 0px;">请输入增加边的编号<br /></p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn add_edge_val1" data-toggle="dropdown" aria-expanded="false"><span>无</span><i class="material-icons">keyboard_arrow_down</i></div>
+                                        <div class="dropdown-menu cur_router_options" role="menu">
+
+                                        </div>
+                                    </div>
+
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn add_edge_val2" data-toggle="dropdown" aria-expanded="false"><span>无</span><i class="material-icons">keyboard_arrow_down</i></div>
+                                        <div class="dropdown-menu cur_router_options" role="menu">
+                                        </div>
+                                    </div>
+                                    <div class="col" style="padding-top: 10px;"><input type="button" class="3" value="增加边"></div>
+
+                                </div>
+
+                                <div class="row ">
+                                    <div class="col">
+                                        <p style="  padding-top: 11px; margin-bottom: 0px;">本轮发送数据包的个数<br /></p>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-left x-drop-btn"><input type="number" class="send" style="width: 100%; border: 0px;"></div>
+                                    </div>
+                                    <div class="col" style="padding-top: 20px; padding-left: 270px;"><input type="button" class="4" value="发送包" ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <div class="row">
@@ -45,7 +113,7 @@
             <div class="row">
                 <div class="col">
                     <h3> 3.当前路由表 </h3>
-                    <div class="table-responsive" style="width: 600px;">
+                    <div class="table-responsive" >
                         <table class="table"  id="router-table">
                         </table>
                     </div>
@@ -76,12 +144,34 @@
 <script type="text/javascript" src="js/dracula_graph.js"></script>
 <script type="text/javascript" src="src/vis_graphic.js"></script>
 <script>
-    function update_all_charts(){
-        update_route_table_vis(graph);
+    function update_all_charts(init = false){
+        update_route_table_vis(graph, init);
         update_pack_table_vis(graph);
         graph.route_vertex.forEach(ele => {
             update_router(ele, graph);
         });
+
+
+        update_dropdown_menu(graph);
+
+        // 删除包边
+        $('rect.pack_edge').on("dblclick", function(){
+            //删除增添边
+            cur_edge_chose = [];
+
+            console.log("hhhhh")
+            if($(this).css("fill") == chosen){
+                // 选了本身，状态切换
+                $(this).css("fill", clear);
+            }
+            else{
+                // 选了其他的
+                $('rect.router').css("fill", clear);
+                $('rect.pack_edge').css("fill", clear);
+                $(this).css("fill", chosen);
+            }
+        })
+
     }
     function remove_router_event(source){
         if(graph.remove_vertex(source)){
@@ -114,6 +204,30 @@
         }
         update_all_charts();
     }
+
+    function update_dropdown_menu(graph){
+        console.log("update_dropdown_menu")
+        
+        $(".cur_router_options").each(function(){
+            $(this).empty();  
+            $(this).parent().children(".x-drop-btn").html('<span> 无</span><i class="material-icons">keyboard_arrow_down</i>');
+            $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + " 无" + "</a>");
+
+            for(let i = 1; i <= 6 ; i ++ ){
+                if(graph.route_table[i].removed == false){
+                    var router_name = String.fromCharCode(65 + i - 1);
+
+                    $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + router_name + "</a>");
+                }
+            }
+        })
+
+        $(".dropdown-item").click(function(){
+            $(this).parent().parent().children(".x-drop-btn").html('<span>' + $(this).html() + '</span><i class="material-icons">keyboard_arrow_down</i>');
+        });
+    }
+
+    
     /* 画布大小 */
     var height = 700;
     var width = 1000;
@@ -161,30 +275,32 @@
     renderer.draw();
 
     /* 更新表格 */
-    // update_route_table_vis(graph);
-    // update_pack_table_vis(graph);
-    update_all_charts();
+    update_all_charts(graph, true);
 
     /* 移除结点 */
     $(".1").click(function(){
-        var source = parseInt($(".remove_node").val());  
-        console.log(source);
-        if(isNaN(source)){
-            alert("亲，您还没有输入哦");
+        var source = $(".delete_node_val").text();
+        source = source.charCodeAt() - 64;
+        if(source == -32){ // ?
+            alert("亲，您还没有选择要删除的点哦");
             return;
         }
-        remove_router_event(source);
+        else{
+            remove_router_event(source);
+        }
     })
 
 
     /* 移除边 */
     $(".2").click(function(){
-        var source = parseInt($(".remove_edge_from").val());
-        var target = parseInt($(".remove_edge_to").val());
+        var source = $(".delete_edge_val1").text();
+        source = source.charCodeAt() - 64;
+        var target = $(".delete_edge_val2").text();
+        target = target.charCodeAt() - 64;
 
-        
-        if(isNaN(source) || isNaN(target)){
-            alert("亲，您还没有输入哦");
+        console.log(source, target)
+        if(source == -32|| target == -32 ){
+            alert("亲，您还没有选择要删除的边的两个顶点哦");
             return;
         }
         delete_edge_event(source, target);
@@ -195,11 +311,13 @@
     /* 添加边 */
     $(".3").click(function(){
         // 保证 source < target
-        var source = parseInt($(".add_edge_from").val());
-        var target = parseInt($(".add_edge_to").val());
+        var source = $(".add_edge_val1").text();
+        source = source.charCodeAt() - 64;
+        var target = $(".add_edge_val2").text();
+        target = target.charCodeAt() - 64;
 
-        if(isNaN(source) || isNaN(target)){
-            alert("亲，您还没有输入哦");
+        if(source == -32|| target == -32 ){
+            alert("亲，您还没有选择要添加的边的两个顶点哦");
             return;
         }
         add_edge_event(source, target);    
@@ -395,23 +513,7 @@ var cur_edge_chose = [];
     }
  });
 
-//   // 删除包边
-//  $('rect.pack_edge').on("dblclick", function(){
-//      //删除增添边
-//     cur_edge_chose = [];
 
-//     console.log("hhhhh")
-//     if($(this).css("fill") == chosen){
-//         // 选了本身，状态切换
-//         $(this).css("fill", clear);
-//     }
-//     else{
-//         // 选了其他的
-//         $('rect.router').css("fill", clear);
-//         $('rect.pack_edge').css("fill", clear);
-//         $(this).css("fill", chosen);
-//     }
-//  })
 
 
 

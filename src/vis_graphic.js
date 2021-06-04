@@ -67,7 +67,7 @@ function update_router(route_id, my_graph){
     /*添加路由表内容，注意一定使<tspan> !!!*/
     var total_table_contents = ""
     for(let i = 1 ; i <= 6; i ++){
-        
+
         if(my_graph.route_table[i].removed == true)
             continue;
 
@@ -319,7 +319,7 @@ async function pack_move_anime(vis_g, pack_id, cur_pos, vis_pos_, speed = 500){
 }
 
 
-function update_route_table_vis(my_graph){
+function update_route_table_vis(my_graph, init = false){
     /*
     * brief@ 更新路由表
     * params@ 
@@ -343,7 +343,7 @@ function update_route_table_vis(my_graph){
             }
         }
 
-    function generateTable(table, route_table, cur_len) {
+    function generateTable(table, route_table, pre_route_table, cur_len, init) {
         /* 更新表内容 */
         for (let key = 1; key <= cur_len ; key ++) {
                 if(route_table[key].removed == true){
@@ -357,19 +357,23 @@ function update_route_table_vis(my_graph){
                 cell.appendChild(text);
 
             for (let i = 1; i <= cur_len ; i ++) {
-                
                 if(route_table[i].removed == true){
                     continue;
                 }
-
+                /* 上一时刻的路由表情况 */
+                pre_elemnt = pre_route_table[i];
                 /* 逐个路由器遍历 */
-
                 element = route_table[i];
                 cell = row.insertCell();
-
                 text = document.createTextNode(String.fromCharCode(65 + element.route_path[key] - 1));
-                    
                 cell.appendChild(text);
+
+                // 当路由表内容发生改变，修改它的颜色
+                if(pre_elemnt.route_path[key] != element.route_path[key] && init == false){
+                    cell.style.color = "red";
+                    cell.style.backgroundColor = "#e6e6e6";
+                }
+                
             }
         }
     }
@@ -381,7 +385,7 @@ function update_route_table_vis(my_graph){
     ////var cur_len = graph.route_vertex.length;
     /* 固定表大小，路由器只增不减... */
     generateTableHead(table, my_graph.route_table, 6);//cur_len);
-    generateTable(table, my_graph.route_table, 6);//cur_len);
+    generateTable(table, my_graph.route_table, my_graph.pre_route_table, 6, init);//cur_len);
 }
 
 function update_pack_table_vis(my_graph){

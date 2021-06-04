@@ -162,7 +162,7 @@
         this.terminal = terminal
         this.limit_packet = max_data_packet_cnt + 1;
         this.route_vertex = []; // 目的地？
-        
+
         this.route_table = [];
         this.pre_route_table = []; // 上一时刻的路由表情况
 
@@ -484,8 +484,7 @@
             /* 函数声明：路由表更新
                 对所有顶点使用dij算法进行路由调整
             */
-           this.pre_route_table = this.route_table;
-
+            this.pre_route_table = hardCopy(this.route_table);
            /* !!! reset!!! */
             for(var i = 0; i <= 6; i++){
                 for(var j = 0; j <= 6; j++){
