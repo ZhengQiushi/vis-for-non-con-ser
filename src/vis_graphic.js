@@ -493,7 +493,7 @@ function update_route_table_vis(my_graph, start, end,  init = false){
 
             my_graph.route_vertex.forEach(ele => {
                 // console.log(ele, start, end)
-                if(ele != start && ele != end){
+                if(ele != start && ele != end){//
                     let th = document.createElement("th");
                     //if(ele > 0){
                     let text = document.createTextNode("Router" + String.fromCharCode(65 + ele - 1));
@@ -509,9 +509,13 @@ function update_route_table_vis(my_graph, start, end,  init = false){
         function generateTable(table,  init) {
             /* 更新表内容 */
             my_graph.route_vertex.forEach(ele_i => {
-                var which_router = String.fromCharCode(65 + ele_i - 1);
+                var which_router  = String.fromCharCode(65 + ele_i - 1);
+                if(ele_i == end){
+                    which_router = "PC2";
+                }
+                
 
-                if(ele_i != start && ele_i != end){
+                if(ele_i != start ){ // && ele_i != end
                     let row = table.insertRow();
                     /* 一行为各个路由器，到A的下一个路由入口！ */
                     let cell = row.insertCell();

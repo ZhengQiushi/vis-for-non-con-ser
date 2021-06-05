@@ -168,7 +168,7 @@
         this.start = start
         this.terminal = terminal
         this.limit_packet = max_data_packet_cnt + 1;
-        this.route_vertex = []; // 目的地？
+        this.route_vertex = []; // 目的地？[1,2,3,4]
 
         this.route_table = [];
         this.pre_route_table = []; // 上一时刻的路由表情况
@@ -249,13 +249,88 @@
             // 从目标点倒过来找，下一个位置
             while(this.least_pos[tmp] != front_vertex){// visit[tmp] == 0){
                 tmp = this.least_pos[tmp];
+                console.log("fuck")
             }
             
             return parseInt(tmp, 10)
         }
 
-
+        this.find_edge = function(cur_edge){
+            var max_node = 0;
+            var is_find = false;
+            for(var i = 0; i < this.route_vertex.length; i++){
+                for(var j in this.route_edge[this.route_vertex[i]]){
+                    // max_node = Math.max(max_node, this.route_edge[this.route_vertex[i]][j].get_to())
+                    // max_node = Math.max(max_node, this.route_vertex[i])
+                    if(cur_edge[0] == this.route_vertex[i] && cur_edge[1] == this.route_edge[this.route_vertex[i]][j].get_to()){
+                        is_find = true;
+                        break;
+                    }
+                    else if(cur_edge[1] == this.route_vertex[i] && cur_edge[0] == this.route_edge[this.route_vertex[i]][j].get_to()){
+                        is_find = true;
+                        break;
+                    }
+                }
+            }
+            return is_find;
+        }
         
+        this.bfs = function(arr){
+            var queue = [];
+            queue.push(arr);
+            var visit = [];
+            for(let i = 0 ; i <= terminal; i++ ){
+                visit.push([]);
+                for(let j = 0 ; j <= terminal ; j ++ ){
+                    visit[i].push(false);
+                }
+            }
+            
+            var max_node ;
+
+            if(arr[0] == start){
+                max_node = arr[1];
+            }
+            else if(arr[1] == start){
+                max_node = arr[0];
+            }
+            else{
+                max_node = Math.max(arr[0], arr[1])
+            }
+
+            
+
+            while(queue.length > 0){
+                var cur_arr = queue.shift();
+                if(visit[cur_arr[0]][cur_arr[1]] == true)
+                    continue;
+                else{
+                    visit[cur_arr[0]][cur_arr[1]] = true;
+                    visit[cur_arr[1]][cur_arr[0]] = true;
+                }
+
+                if(cur_arr[0] == start){
+                    max_node = Math.max(max_node, cur_arr[1]);
+                }
+                else if(cur_arr[1] == start){
+                    max_node = Math.max(max_node, cur_arr[0]);
+                }
+                else{
+                    max_node = Math.max(max_node, cur_arr[0], cur_arr[1]);
+                }
+
+                for(var j in this.route_edge[cur_arr[0]]){
+                    queue.push([cur_arr[0], this.route_edge[cur_arr[0]][j].get_to()]);
+                }
+                for(var j in this.route_edge[cur_arr[1]]){
+                    queue.push([cur_arr[1], this.route_edge[cur_arr[1]][j].get_to()]);
+                } 
+            }
+
+            console.log("max_node : ", max_node, arr)
+            return max_node;
+        }
+
         this.data_packet_move = function(new_send_pack_num)
         {
             /* 函数声明：图中数据包移动
@@ -267,7 +342,7 @@
                 
                 var arr = this.packet_pos[i].get_pos() // arr[from，to]
                 
-                console.log("data_packet_move: ", arr[0], arr[1]);
+                // console.log("data_packet_move: ", arr[0], arr[1]);
 
                 /* 无效的数据包，位置在原点！ */
                 if(arr[0] == 0 && arr[1] == 0){
@@ -291,6 +366,10 @@
                         this.route_edge[arr[1]][j].set_weight(this.route_edge[arr[1]][j].get_weight() - 1)
                 
 
+                //var cur_terminal = "";
+                //!
+                var cur_terminal = this.bfs(arr);
+
                 /* 该包已到达终点 */
                 if(arr[0] == this.terminal || arr[1] == this.terminal){
                     this.packet_pos[i].set_pos(0, 0)
@@ -304,8 +383,7 @@
                 /* 使用tmp_arr 记录原位置 */
                 var tmp_arr = [arr[0], arr[1]];
                 /* 此时的arr数组中的数据为数据包的新位置*/
-                arr = [arr[1], this.route_table[arr[1]].get_route(this.terminal)]
-                console.log("arr : ", arr);
+                arr = [arr[1], this.route_table[arr[1]].get_route(cur_terminal)]
                 if(arr[1] == -1){
                     // 包无法到达  认为直接死掉
                     this.packet_pos[i].set_pos(0, 0);
@@ -313,9 +391,25 @@
                     console.log("死了！",  this.packet_pos[i])
                     continue
                 }
+                else if(arr[0] == tmp_arr[1] && arr[1] == tmp_arr[0]){
+                    this.packet_pos[i].set_pos(0, 0);
+                    this.died_pack.push(i); // 死了
+                    console.log("死了！",  this.packet_pos[i])
+                    continue
+                }
                 else if(arr[0] == tmp_arr[0] && arr[1] == tmp_arr[1]){
                     // 反向传递
-                    arr = [arr[0], this.route_table[arr[0]].get_route(this.terminal)]
+                    // this.packet_pos[i].set_pos(0, 0);
+                    // this.died_pack.push(i); // 死了
+                    // console.log("死了！",  this.packet_pos[i])
+                    // continue
+                    arr = [arr[0], this.route_table[arr[0]].get_route(cur_terminal)]
+                }
+                else if(!this.find_edge(arr)){
+                    this.packet_pos[i].set_pos(0, 0);
+                    this.died_pack.push(i); // 死了
+                    console.log("死了！",  this.packet_pos[i])
+                    continue
                 }
 
                 /* 更新包移动后的边权 */
@@ -324,16 +418,21 @@
                  */
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++){
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
+                        console.log( this.packet_pos[i].id , "arr : ", arr);
                         if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
+                            console.log(this.packet_pos[i].id, ": ", arr[0], "-> ", arr[1], "阻塞啦！" );
                             this.congestion_packets.push(this.packet_pos[i]);
 
                             for(var k = 0; k < this.route_edge[tmp_arr[0]].length; k++){
                                 if(this.route_edge[tmp_arr[0]][k].get_to() == tmp_arr[1])
                                     this.route_edge[tmp_arr[0]][k].set_weight(this.route_edge[tmp_arr[0]][k].get_weight() + 1)
                             }
+                           
+
+
                         }
                         else{
-                            console.log(this.packet_pos[i].id, ": ", arr[0], "-> ", arr[1], "阻塞啦！" );
+                            
 
 
                             this.route_edge[arr[0]][j].set_weight(this.route_edge[arr[0]][j].get_weight() + 1)
@@ -511,6 +610,19 @@
                     this.route_table[vertex_index].set_route(dst_index, this.find_entry(dst_index, vertex_index))
                 }
             }
+
+            console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            for(var i = 0; i < this.route_vertex.length; i++){
+                var vertex_index = this.route_vertex[i];
+                var cur_content = this.route_table[vertex_index].route_path;
+                for(var j = 0 ; j < cur_content.length; j++){
+                    if(cur_content[j] == -1){
+                        cur_content[j] = this.pre_route_table[vertex_index].route_path[j];
+                    }
+                }
+                console.log(this.route_table[vertex_index].route_path);
+
+            }
         }
 
         /* 函数声明：展示出所有拥塞边的信息
@@ -624,7 +736,6 @@
             /* 更新当前边集 */
             if(from > to)
                 [from, to] = [to, from];
-            console.log("!!!!!!")
             console.log(this.cur_edges)
             for(let i = 0 ; i < this.cur_edges.length; i ++ ){
                 var cur_edge = this.cur_edges[i];

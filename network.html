@@ -494,12 +494,15 @@
         var ret = graph.get_data_packet()
         graph.cur_all_pack_pos = hardCopy(ret);
 
+
+        console.log("graph.prev_all_pack_pos: ", graph.prev_all_pack_pos);
+        console.log("graph.cur_all_pack_pos: ", graph.cur_all_pack_pos);
+       
         //移动新生成的包
         while(graph.new_pack_gen.length > 0){
             var cur_pack_id = graph.new_pack_gen.shift();
             console.log("add_package: ", cur_pack_id);
             var home_position = route_position[router_name.indexOf(start)]
-            
             add_package(vis_g, cur_pack_id, home_position);
             
         }
