@@ -244,20 +244,11 @@
             */
             if(des_vertex == front_vertex || this.least_pos[des_vertex] == -1)
                 return -1
-            var visit = []
-            for(var i = 0; i <= this.max_vertex_node; i++)
-                visit.push(0)
-            
-            for(var i = 0; i < this.route_edge[front_vertex].length; i++)
-                // 遍历当前路由，能到的全设1 
-                visit[this.route_edge[front_vertex][i].get_to()] = 1;
-            
             var tmp = des_vertex;
 
             // 从目标点倒过来找，下一个位置
-            while(visit[tmp] == 0){
+            while(this.least_pos[tmp] != front_vertex){// visit[tmp] == 0){
                 tmp = this.least_pos[tmp];
-                console.log("cnm")
             }
             
             return parseInt(tmp, 10)
@@ -652,7 +643,7 @@
                 for(var i = 0; i < this.route_edge[from].length; i++){
                     if(this.route_edge[from][i].get_to() == to){
                         alert("该边已存在 拒绝添加")
-                        return
+                        return -1;
                     }
                 }
             }
@@ -673,7 +664,9 @@
             }
 
             /* 更新对应路由表 */
-            this.update_route_table()
+            this.update_route_table();
+
+            return 1;
         }
     
         /* 函数声明：展示出每个顶点的路由表信息

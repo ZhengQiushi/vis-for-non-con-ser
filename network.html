@@ -138,7 +138,7 @@
                     <textarea readonly style="width: 100%;height: 200px;" id = "running_log">
                         欢迎使用本软件！
                         本算法演示基于Djistra进行实现。每个路由器存在一张路由表，路由表的值，决定了相应包的下一个流向出口。根据当前的阻塞情况，路由表的出口值会实时更新！
-                        每两个路由表之间可能会存在边，边的最大承载为4，一旦流经的数据包个数超过了该承载值，数据包就会在原地停留，即产生了相应的阻塞！
+                        每两个路由表之间可能会存在边，边的最大承载为4（你可以在配置文件中修改），一旦流经的数据包个数超过了该承载值，数据包就会在原地停留，即产生了相应的阻塞！
                         如果当前情况，没有相应的边可以让数据包到达终点，那么这些数据包就会被丢弃！
                         
                         简单的使用说明：
@@ -168,15 +168,15 @@
 <script type="text/javascript" src="js/dracula_graph.js"></script>
 <script type="text/javascript" src="src/vis_graphic.js"></script>
 <script>
-    function update_all_charts(init = false){
-        update_route_table_vis(graph, init);
-        update_pack_table_vis(graph);
+    function update_all_charts(start, end, init = false){
+        update_route_table_vis(graph, start, end, init);
+        update_pack_table_vis(start, end, graph);
         // graph.route_vertex.forEach(ele => {
         //     update_router(ele, graph);
         // });
 
 
-        update_dropdown_menu(graph);
+        update_dropdown_menu(start, end, graph);
 
         var textarea = document.getElementById('running_log');
         textarea.scrollTop = textarea.scrollHeight;
@@ -190,7 +190,7 @@
             renderer.draw();
         };
         // 更新可视化路由表
-        update_all_charts();
+        update_all_charts(start, end);
     }
     function add_edge_event(source, target){
         if(source > target)
@@ -200,37 +200,34 @@
         var vis_pos_from = route_position[router_name.indexOf(source)];
         var vis_pos_to = route_position[router_name.indexOf(target)];
 
-        graph.add_edge(source, target);
+        if(graph.add_edge(source, target) > 0){
+            add_pack_edge(vis_g, source, target, graph, vis_pos_from, vis_pos_to);
+            // 删除包边
 
-        console.log("add_edge_event", source, target);
-        
-
-
-        add_pack_edge(vis_g, source, target, graph, vis_pos_from, vis_pos_to);
-        // 删除包边
-
-        // 一定是先画再query！
-        renderer.draw();
+            // 一定是先画再query！
+            renderer.draw();
 
 
-        $(".edge_"+source+"-"+target).on("dblclick", function(){
-            //删除增添边
-            cur_edge_chose = [];
-            if($(this).css("fill") == chosen){
-                // 选了本身，状态切换
-                $(this).css("fill", clear);
-            }
-            else{
-                // 选了其他的
-                $('rect.router').css("fill", clear);
-                $('rect.pack_edge').css("fill", clear);
+            $(".edge_"+source+"-"+target).on("dblclick", function(){
+                //删除增添边
+                cur_edge_chose = [];
+                if($(this).css("fill") == chosen){
+                    // 选了本身，状态切换
+                    $(this).css("fill", clear);
+                }
+                else{
+                    // 选了其他的
+                    $('rect.router').css("fill", clear);
+                    $('rect.pack_edge').css("fill", clear);
 
-                $(this).css("fill", chosen);
-            }
-        })
+                    $(this).css("fill", chosen);
+                }
+            })
 
-        // 更新可视化路由表
-        update_all_charts();
+            // 更新可视化路由表
+            update_all_charts(start, end);
+        }
+
     }
     function delete_edge_event(source, target){
         if(source > target)
@@ -244,10 +241,10 @@
             del_pack_edge(vis_g, source, target);
             renderer.draw();
         }
-        update_all_charts();
+        update_all_charts(start, end);
     }
 
-    function update_dropdown_menu(graph){
+    function update_dropdown_menu(start, end, graph){
         console.log("update_dropdown_menu")
         
         $(".cur_router_options").each(function(){
@@ -256,11 +253,11 @@
             $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + " 无" + "</a>");
 
             graph.route_vertex.forEach(ele => {
-                //if(graph.route_table[ele].removed == false){
+                if(ele != start && ele != end){
                     var router_name = String.fromCharCode(65 + ele - 1);
-
                     $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + router_name + "</a>");
-                //}
+                }
+
             })
         })
 
@@ -324,16 +321,10 @@
 
     })
     
-
-    /* 画布大小 */
-
     var send_pack_cnt = 1;
 
-
-    /* 路由位置 */
-
-    
     dustbin_position = new vis_pos(50, 600);
+
     /* 算法初始化 */
     var graph = new myGraph(router_name, edges_, start, end, max_pack_per_edge)
     graph.init()
@@ -344,24 +335,17 @@
     /* 复现课本的图片 */
     router_name.forEach((ele, index) => {
         if(ele != 0){
-            add_router(vis_g, ele, graph, route_position[index]);
+            add_router(vis_g, ele, graph, route_position[index], start, end);
         }
     })
-
+    /* 画垃圾桶 */
     add_dustbin(vis_g, dustbin_position);
-
-    console.log(route_position);
-
+    /* 画边 */
     edges_.forEach(ele => {
         if(ele.from > ele.to)
             [ele.from, ele.to] = [ele.to, ele.from];
-
-    
         var vis_pos_from = route_position[router_name.indexOf(ele.from)];
         var vis_pos_to = route_position[router_name.indexOf(ele.to)];
-        // console.log(ele.from, ele.to);
-        // console.log(vis_pos_from, vis_pos_to);
-
         add_pack_edge(vis_g, ele.from, ele.to, graph, vis_pos_from, vis_pos_to);
     })
 
@@ -369,7 +353,7 @@
     renderer.draw();
 
     /* 更新表格 */
-    update_all_charts(graph, true);
+    update_all_charts(start, end, true);
 
     /* 移除结点 */
     $(".1").click(function(){
@@ -392,7 +376,6 @@
         var target = $(".delete_edge_val2").text();
         target = target.charCodeAt() - 64;
 
-        console.log(source, target)
         if(source == -32|| target == -32 ){
             alert("亲，您还没有选择要删除的边的两个顶点哦");
             return;
@@ -413,14 +396,22 @@
         if(source == -32|| target == -32 ){
             alert("亲，您还没有选择要添加的边的两个顶点哦");
             return;
-        }
-
-        
+        } 
         add_edge_event(source, target);    
     })
 
     /*发送包 */
     $(".4").click(function(){
+
+        /** 更新路由位置信息  */
+        $("rect.router").each(function(){
+            console.log($(this).attr("id"));
+            var name = $(this).attr("id").split("-")[1];
+            var index_pos = router_name.indexOf(name.charCodeAt() - 64);
+            route_position[index_pos] = new vis_pos(Math.floor($(this).attr("x")), Math.floor($(this).attr("y")));
+        })
+
+
         var per_pack_num = parseInt($(".send").val());
 
         if(isNaN(per_pack_num)){
@@ -430,6 +421,7 @@
 
         $("textarea").append("\n@@本次是第 " + send_pack_cnt + "次发送， 发送了 " + per_pack_num + "个@@\n");
         send_pack_cnt++;
+
         //图形化： 删除已经到达目的地的
         while(graph.achieved_pack.length > 0){
             var cur_pack_id = graph.achieved_pack.shift().id;
@@ -445,19 +437,17 @@
         //算法：
         graph.data_packet_move(per_pack_num);
 
-        // 移动到dustbin
+        // 已死了的移动到dustbin
         for(let i = 0; i < graph.died_pack.length; i ++ ){
             var cur_pack_id = graph.died_pack[i];
             pack_move_to_dustbin_anime(vis_g, cur_pack_id, dustbin_position);
             $("textarea").append("[WARNING]数据包 " + cur_pack_id + " 丢失了!\n")
-
         }
 
         /* 更新上一时刻的包和这一时刻的包*/
         graph.prev_all_pack_pos = hardCopy(graph.cur_all_pack_pos);
         var ret = graph.get_data_packet()
         graph.cur_all_pack_pos = hardCopy(ret);
-
 
         //移动新生成的包
         while(graph.new_pack_gen.length > 0){
@@ -472,7 +462,7 @@
             var cur_pack_id = graph.achieved_pack[i].id;//.shift();
             var cur_router = end;//graph.route_vertex.length;
             var vis_pos_to;
-            var vis_pos_from = vis_pos_to = route_position[router_name.indexOf(cur_router)];
+            var vis_pos_from = vis_pos_to = cur_router; //router_name.indexOf();//route_position[router_name.indexOf(cur_router)];
 
             pack_move_anime(vis_g, cur_pack_id, vis_pos_from, vis_pos_to);
         }
@@ -491,17 +481,14 @@
         while(graph.congestion_packets.length > 0){
             var cur_pack = graph.congestion_packets.shift();
             var cur_pack_id = cur_pack.id;
-
-            console.log("cur_pack_id: ", cur_pack_id);
             pack_congested(vis_g, cur_pack_id);
             var source = String.fromCharCode(64 + cur_pack.get_pos()[0]);
             var target = String.fromCharCode(64 + cur_pack.get_pos()[1]);
-
             $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在边" + source +"-" + target + "!\n")
         }
 
 
-        //防止包乱走...
+            //防止包乱走...
             for(let j = 0; j < graph.cur_all_pack_pos.length; j ++ ){
                 var cur_pack = graph.cur_all_pack_pos[j];
                 var remain = true;
@@ -537,8 +524,6 @@
             var move_pack_id = cur_pack.id;
             var cur_pos = graph.cur_all_pack_pos[i].lets_go()
             
-            console.log(graph.cur_all_pack_pos[i])
-            
             // 不移动位置尚未改变的包
             var need_move = true;
             for(let j = 0 ; j < graph.prev_all_pack_pos.length; j ++ ){
@@ -552,15 +537,15 @@
                 }
             }
             if(need_move){
-                var vis_pos_from = route_position[router_name.indexOf(cur_pos[0])];
-                var vis_pos_to = route_position[router_name.indexOf(cur_pos[1])];
+                var vis_pos_from = cur_pos[0]; // router_name.indexOf();//route_position[];
+                var vis_pos_to = cur_pos[1]; // router_name.indexOf(); //route_position[];
 
                 pack_move_anime(vis_g, move_pack_id, vis_pos_from, vis_pos_to);
             }
             
         }
         // 更新可视化路由表
-        update_all_charts(init = false)
+        update_all_charts(start, end, init = false)
     })
 
 

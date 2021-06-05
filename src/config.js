@@ -1,20 +1,25 @@
 /* 最好人为保证 routeName 为递增！*/
 var config = {
-    "width": 1000,
-    "height" : 700,
+    "width": 1000, // 画布的宽
+    "height" : 700, // 画布的高
 
-    "start" : "A",
-    "end" : "F",
-    "max_pack_per_edge": 6,
+    "start" : "Y", // 最好不要修改起始PC啦
+    "end" : "Z",   // 最好不要修改接受PC啦
+
+    "max_pack_per_edge": 4, // 边的最大承载
+
+
 
     "routers":[
         {"routeName":"", "position":[0, 0]}, 
-        {"routeName":"A", "position":[100, 200]}, 
+        {"routeName":"A", "position":[150, 200]}, 
         {"routeName":"B", "position":[300, 150]}, 
         {"routeName":"C", "position":[350, 500]}, 
         {"routeName":"D", "position":[500, 150]},
         {"routeName":"E", "position":[700, 300]}, 
-        {"routeName":"F", "position":[900, 300]}
+        {"routeName":"F", "position":[800, 300]},
+        {"routeName":"Y", "position" : [50, 200]}, // 起始PC
+        {"routeName":"Z", "position" : [900, 300]} // 接受PC
     ],
     "edges":[
         {"from":"A", "to":"C"},
@@ -23,7 +28,9 @@ var config = {
         {"from":"B", "to":"D"},
         {"from":"C", "to":"E"},
         {"from":"D", "to":"E"},
-        {"from":"E", "to":"F"}
+        {"from":"E", "to":"F"},
+        {"from":"Y", "to": "A"},   // 起始PC -> 路由
+        {"from":"F", "to": "Z"}    // 路由 -> 接受PC
     ]
 };
 
