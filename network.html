@@ -238,7 +238,7 @@
 
         /* 删除边 */
 
-        console.log(source, "-> ", target);
+        //console.log(source, "-> ", target);
 
         if(graph.remove_edge(source, target)){
             del_pack_edge(vis_g, source, target);
@@ -248,7 +248,7 @@
     }
 
     function update_dropdown_menu(start, end, graph){
-        console.log("update_dropdown_menu")
+        //console.log("update_dropdown_menu")
         
         $(".cur_router_options").each(function(){
             $(this).empty();  
@@ -367,7 +367,7 @@
     /* 移除结点 */
     $(".1").click(function(){
         var source = $(".delete_node_val").text();
-        console.log(source)
+        //console.log(source)
         if(source == "PC1keyboard_arrow_down" || source == "PC2keyboard_arrow_down"){
             alert("你不能删除起始或接受的PC！");    
             return;
@@ -455,7 +455,7 @@
 
         /** 更新路由位置信息  */
         $("rect.router").each(function(){
-            console.log($(this).attr("id"));
+            //console.log($(this).attr("id"));
             var name = $(this).attr("id").split("-")[1];
             var index_pos = router_name.indexOf(name.charCodeAt() - 64);
             route_position[index_pos] = new vis_pos(Math.floor($(this).attr("x")), Math.floor($(this).attr("y")));
@@ -487,12 +487,7 @@
         //算法：
         graph.data_packet_move(per_pack_num);
 
-        // 已死了的移动到dustbin
-        for(let i = 0; i < graph.died_pack.length; i ++ ){
-            var cur_pack_id = graph.died_pack[i];
-            pack_move_to_dustbin_anime(vis_g, cur_pack_id, dustbin_position);
-            $("textarea").append("[WARNING]数据包 " + cur_pack_id + " 丢失了!\n")
-        }
+
 
         /* 更新上一时刻的包和这一时刻的包*/
         graph.prev_all_pack_pos = hardCopy(graph.cur_all_pack_pos);
@@ -502,11 +497,20 @@
         //移动新生成的包
         while(graph.new_pack_gen.length > 0){
             var cur_pack_id = graph.new_pack_gen.shift();
+            console.log("add_package: ", cur_pack_id);
+            var home_position = route_position[router_name.indexOf(start)]
             
-            add_package(vis_g, cur_pack_id, graph, route_position)
+            add_package(vis_g, cur_pack_id, home_position);
             
         }
         renderer.draw();
+
+        // 已死了的移动到dustbin
+        for(let i = 0; i < graph.died_pack.length; i ++ ){
+            var cur_pack_id = graph.died_pack[i];
+            pack_move_to_dustbin_anime(vis_g, cur_pack_id, dustbin_position);
+            $("textarea").append("[WARNING]数据包 " + cur_pack_id + " 丢失了!\n")
+        }
 
         //移动到终点
         for(let i = 0 ; i < graph.achieved_pack.length; i ++ ){
@@ -597,7 +601,7 @@
             if(need_move){
                 var vis_pos_from = cur_pos[0]; // router_name.indexOf();//route_position[];
                 var vis_pos_to = cur_pos[1]; // router_name.indexOf(); //route_position[];
-                console.log("cur_pos: ", cur_pos);
+                //console.log("cur_pos: ", cur_pos);
 
                 pack_move_anime(vis_g, move_pack_id, vis_pos_from, vis_pos_to);
             }
@@ -653,7 +657,7 @@ var cur_edge_chose = [];
         $(this).css("fill", half_chosen);
     }
 
-    console.log("cur_edge_chose: ", cur_edge_chose)
+   // console.log("cur_edge_chose: ", cur_edge_chose)
  });
 
 
@@ -695,7 +699,7 @@ var cur_edge_chose = [];
 
 
 $(document).keypress(function(e) {
-    console.log(e.which);
+    //console.log(e.which);
 
     if(e.which == "100" || e.which == "68"){
         // 选择路由删除
@@ -704,7 +708,7 @@ $(document).keypress(function(e) {
 
                 var router_name_del = $(this).attr("id");
                 var router_id = router_name_del.split("-")[1].charCodeAt() - 64;
-                console.log(router_id)
+                //console.log(router_id)
                 if(router_id == start || router_id == end){
                     alert("你不能删除起始或接受的PC！");
                     return;
@@ -712,7 +716,7 @@ $(document).keypress(function(e) {
 
                 if(confirm("确实要删除" + $(this).attr("id") + "吗？")){
                     var source = $(this).attr("id").split("-")[1];
-                    console.log(source)
+                    //console.log(source)
                     source = source.charCodeAt() - 64;
                     remove_router_event(source);
                     return;

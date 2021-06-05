@@ -39,7 +39,7 @@ function add_router(vis_g, route_id, my_graph, vis_pos, start, end){
             var set = r.set()
                     .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px",  "x": x + 10,"y": y - 10}))
                     .push(r.image(image_dir, n.point[0] - 30, n.point[1] - 13, 64, 64).attr({"x": x,"y":y}))
-                    .push(r.rect(n.point[0]-30, n.point[1]-13, 62, 66).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y }))
+                    .push(r.rect(n.point[0]-30, n.point[1]-13, 62, 66).attr({"fill": "#fff", "stroke-width": 2, r : "9px", "x": x,"y":y ,"fill-opacity": .4}))
 
             let i = 0;
             /* step2: 如果需要修改其属性，通过items[xxx].node 进行 setAttribute*/
@@ -250,7 +250,7 @@ function update_pack_edge(from, to, my_graph){
         [from, to] = [to, from];
     }
     var cur_all_pack = my_graph.cur_all_pack_pos;
-    console.log(cur_all_pack);
+    //console.log(cur_all_pack);
 
     var cur_edge_pack = find_cur_edge_pack(from, to, cur_all_pack);
     cur_edge_pack = cur_edge_pack.concat(find_cur_edge_pack(to, from, cur_all_pack))
@@ -266,14 +266,14 @@ function update_pack_edge(from, to, my_graph){
 
     var cur_pack_name = "edge_" + from + "-" + to;
 
-    console.log("cur_pack_name: " + cur_pack_name, cur_edge_pack);
+    // console.log("cur_pack_name: " + cur_pack_name, cur_edge_pack);
 
     $("." + cur_pack_name).html(total_pack_contents);
     $("." + cur_pack_name + "_num").html("<tspan>" + "num: " + cur_edge_pack.length + "</tspan>");
 
 }
 
-function add_package(vis_g, pack_id, my_graph, vis_pos){    
+function add_package(vis_g, pack_id, vis_pos){    
     /*
     * brief@ 画布上，路由之间连线（并设置一个顶点，用于显示当前该边上的包）
     *        边上的数为当前边上的包个数，点击可以看到具体内容 PAK: 3 (from A) 意思是：当前包号为3，上一时刻从A来
@@ -283,8 +283,8 @@ function add_package(vis_g, pack_id, my_graph, vis_pos){
     *         vis_pos  路由位置
     */
     /* 起始 */
-    var x = vis_pos[1].x;
-    var y = vis_pos[1].y;
+    // var x = vis_pos[1].x;
+    // var y = vis_pos[1].y;
 
     var cur_pack_name = "pack_" + pack_id;
 
@@ -294,8 +294,8 @@ function add_package(vis_g, pack_id, my_graph, vis_pos){
 
     var render = function(r, n) {
             var set = r.set()
-                .push(r.circle(0, 0, 30).attr({"fill": "#"+randomColor.toString(16), "stroke-width": 2}))
-                .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px", "font-color": "#" + textColor}));
+                .push(r.circle(0, 0, 30).attr({"fill": "#"+randomColor.toString(16), "stroke-width": 2, "cx": vis_pos.x, "cy": vis_pos.y, "fill-opacity": .4}))
+                .push(r.text(n.point[0], n.point[1] + 20, n.label).attr({"font-size":"14px", "font-color": "#" + textColor, "x": vis_pos.x, "y": vis_pos.y}));
                 
             set.items[0].node.setAttribute("id", cur_pack_name);
             set.items[0].node.setAttribute("class",  "pack "+cur_pack_name);
@@ -405,10 +405,10 @@ async function pack_move_anime(vis_g, pack_id, vis_from, vis_to, speed = 500){
     var pack_edge_name2 = "edge_"+vis_to+"-"+vis_from;
 
 
-    console.log("rect." + pack_edge_name1, '$("rect." + pack_edge_name1)', $("rect." + pack_edge_name1));
-    console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
+    // console.log("rect." + pack_edge_name1, '$("rect." + pack_edge_name1)', $("rect." + pack_edge_name1));
+    // console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
 
-    console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
+    // console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
 
 
     var to_pack_edge = undefined;
@@ -492,12 +492,12 @@ function update_route_table_vis(my_graph, start, end,  init = false){
             row.appendChild(th);
 
             my_graph.route_vertex.forEach(ele => {
-                console.log(ele, start, end)
+                // console.log(ele, start, end)
                 if(ele != start && ele != end){
                     let th = document.createElement("th");
                     //if(ele > 0){
-                        let text = document.createTextNode("Router" + String.fromCharCode(65 + ele - 1));
-                        th.appendChild(text);
+                    let text = document.createTextNode("Router" + String.fromCharCode(65 + ele - 1));
+                    th.appendChild(text);
                     //}
                     row.appendChild(th);
                 }
@@ -545,7 +545,7 @@ function update_route_table_vis(my_graph, start, end,  init = false){
                             else if(end == pre_elemnt.route_path[ele_i]){
                                 pre_content = "PC2";
                             }
-                            
+
                             // 当路由表内容发生改变，修改它的颜色
                             if(pre_elemnt.route_path[ele_i] != element.route_path[ele_i] && init == false){
 
@@ -656,7 +656,7 @@ function update_pack_table_vis(start, end, my_graph){
     generateTableHead(pack_table_body, ["是否显示", "数据包id", "数据包流通路径"])
     generateTable(pack_table_body, cur_all_pack)
     
-    console.log(cur_all_pack)
+    //console.log(cur_all_pack)
 
     /* 当全选框被✔，所有都✔ */
     $(".all_pack_show").change(function() { 
