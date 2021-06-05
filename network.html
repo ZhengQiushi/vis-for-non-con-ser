@@ -256,10 +256,14 @@
             $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + " 无" + "</a>");
 
             graph.route_vertex.forEach(ele => {
-                if(ele != start && ele != end){
-                    var router_name = String.fromCharCode(65 + ele - 1);
-                    $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + router_name + "</a>");
+                var router_name = String.fromCharCode(65 + ele - 1);
+                if(ele == start){
+                    router_name = "PC1";
                 }
+                else if(ele == end){
+                    router_name = "PC2";
+                }
+                $(this).append("<a class='dropdown-item' role='presentation' href='#'>" + router_name + "</a>");
 
             })
         })
@@ -363,6 +367,11 @@
     /* 移除结点 */
     $(".1").click(function(){
         var source = $(".delete_node_val").text();
+        console.log(source)
+        if(source == "PC1keyboard_arrow_down" || source == "PC2keyboard_arrow_down"){
+            alert("你不能删除起始或接受的PC！");    
+            return;
+        }
         source = source.charCodeAt() - 64;
         if(source == -32){ // ?
             alert("亲，您还没有选择要删除的点哦");
@@ -377,9 +386,27 @@
     /* 移除边 */
     $(".2").click(function(){
         var source = $(".delete_edge_val1").text();
-        source = source.charCodeAt() - 64;
+        if(source == "PC1keyboard_arrow_down"){
+            source = start;
+        }
+        else if(source == "PC2keyboard_arrow_down"){
+            source = end;
+        }
+        else{
+            source = source.charCodeAt() - 64;
+        }
+        
         var target = $(".delete_edge_val2").text();
-        target = target.charCodeAt() - 64;
+        
+        if(target == "PC1keyboard_arrow_down"){
+            target = start;
+        }
+        else if(target == "PC2keyboard_arrow_down"){
+            target = end;
+        }
+        else{
+            target = target.charCodeAt() - 64;
+        }
 
         if(source == -32|| target == -32 ){
             alert("亲，您还没有选择要删除的边的两个顶点哦");
@@ -394,9 +421,27 @@
     $(".3").click(function(){
         // 保证 source < target
         var source = $(".add_edge_val1").text();
-        source = source.charCodeAt() - 64;
+        if(source == "PC1keyboard_arrow_down"){
+            source = start;
+        }
+        else if(source == "PC2keyboard_arrow_down"){
+            source = end;
+        }
+        else{
+            source = source.charCodeAt() - 64;
+        }
+        
         var target = $(".add_edge_val2").text();
-        target = target.charCodeAt() - 64;
+        
+        if(target == "PC1keyboard_arrow_down"){
+            target = start;
+        }
+        else if(target == "PC2keyboard_arrow_down"){
+            target = end;
+        }
+        else{
+            target = target.charCodeAt() - 64;
+        }
 
         if(source == -32|| target == -32 ){
             alert("亲，您还没有选择要添加的边的两个顶点哦");
@@ -490,7 +535,14 @@
             pack_congested(vis_g, cur_pack_id);
             var source = String.fromCharCode(64 + cur_pack.get_pos()[0]);
             var target = String.fromCharCode(64 + cur_pack.get_pos()[1]);
-            $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在边" + source +"-" + target + "!\n")
+            if(cur_pack.get_pos()[0] == start){
+                $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在PC1!\n")
+            }
+            else if(cur_pack.get_pos()[1] == end){
+                $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在边" + source +"-PC2" + "!\n")
+            }
+            else
+                $("textarea").append("[INFO]数据包 " + cur_pack_id + " 被阻塞在边" + source +"-" + target + "!\n")
         }
 
 
@@ -649,6 +701,15 @@ $(document).keypress(function(e) {
         // 选择路由删除
         $('rect.router').each(function(){
             if($(this).css("fill") == chosen){
+
+                var router_name_del = $(this).attr("id");
+                var router_id = router_name_del.split("-")[1].charCodeAt() - 64;
+                console.log(router_id)
+                if(router_id == start || router_id == end){
+                    alert("你不能删除起始或接受的PC！");
+                    return;
+                }
+
                 if(confirm("确实要删除" + $(this).attr("id") + "吗？")){
                     var source = $(this).attr("id").split("-")[1];
                     console.log(source)
@@ -665,7 +726,26 @@ $(document).keypress(function(e) {
                     source = source.split("_")[1];
                     var p1 = parseInt(source.split("-")[0]);
                     var p2 = parseInt(source.split("-")[1]);
-                    var edge_name = "边" + String.fromCharCode(65 + p1 - 1) + "-" +String.fromCharCode(65 + p2 - 1);
+
+                    var source_name = String.fromCharCode(65 + p1 - 1);
+                    var target_name = String.fromCharCode(65 + p2 - 1);
+
+                    if(p1 == start){
+                        source_name = "PC1";
+                    }
+                    else if(p1 == end){
+                        source_name = "PC2";
+                    }
+
+                    if(p2 == end){
+                        target_name = "PC2";
+                    }
+                    else if(p1 == start){
+                        target_name = "PC1";
+                    }
+
+
+                    var edge_name = "边" + source_name + "-" +target_name;
                     if(confirm("确实要删除 " + edge_name + "吗？")){
                         delete_edge_event(p1, p2)
                         return;
@@ -678,7 +758,25 @@ $(document).keypress(function(e) {
             var target = cur_edge_chose[1].split("-")[1];
             source = source.charCodeAt() - 64;
             target = target.charCodeAt() - 64;
-            var edge_name = "边" + String.fromCharCode(65 + source - 1) + "-" +String.fromCharCode(65 + target - 1);
+
+            var source_name = String.fromCharCode(65 + source - 1);
+            var target_name = String.fromCharCode(65 + target - 1);
+
+            if(source == start){
+                source_name = "PC1";
+            }
+            else if(source == end){
+                source_name = "PC2";
+            }
+
+            if(target == end){
+                target_name = "PC2";
+            }
+            else if(target == start){
+                target_name = "PC1";
+            }
+
+            var edge_name = "边" + source_name + "-" + target_name;
                     if(confirm("确实要删除 " + edge_name + "吗？")){
                         delete_edge_event(source, target);
                         return;
@@ -698,7 +796,26 @@ $(document).keypress(function(e) {
             var target = cur_edge_chose[1].split("-")[1];
             source = source.charCodeAt() - 64;
             target = target.charCodeAt() - 64;
-            var edge_name = "边" + String.fromCharCode(65 + source - 1) + "-" +String.fromCharCode(65 + target - 1);
+
+            var source_name = String.fromCharCode(65 + source - 1);
+            var target_name = String.fromCharCode(65 + target - 1);
+
+            if(source == start){
+                source_name = "PC1";
+            }
+            else if(source == end){
+                source_name = "PC2";
+            }
+
+            if(target == end){
+                target_name = "PC2";
+            }
+            else if(target == start){
+                target_name = "PC1";
+            }
+                    
+
+            var edge_name = "边" + source_name + "-" + target_name;
 
             if(confirm("确实要添加 " + edge_name + "吗？")){
                 add_edge_event(source, target);

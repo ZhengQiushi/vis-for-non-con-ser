@@ -532,9 +532,23 @@ function update_route_table_vis(my_graph, start, end,  init = false){
         
                             var cur_content = String.fromCharCode(65 + element.route_path[ele_i] - 1);
                             var pre_content = String.fromCharCode(65 + pre_elemnt.route_path[ele_i] - 1);
-        
+                            
+                            if(start == element.route_path[ele_i]){
+                                cur_content = "PC1";
+                            }
+                            else if(end == element.route_path[ele_i]){
+                                cur_content = "PC2";
+                            }
+                            if(start == pre_elemnt.route_path[ele_i]){
+                                pre_content = "PC1";
+                            }
+                            else if(end == pre_elemnt.route_path[ele_i]){
+                                pre_content = "PC2";
+                            }
+                            
                             // 当路由表内容发生改变，修改它的颜色
                             if(pre_elemnt.route_path[ele_i] != element.route_path[ele_i] && init == false){
+
                                 text = document.createTextNode(cur_content + "<-" + pre_content);
                                 cell.appendChild(text);
                                 cell.style.color = "red";

@@ -26,8 +26,8 @@ var config = {
         {"from":"A", "to":"B"},
         {"from":"C", "to":"D"},
         {"from":"B", "to":"D"},
-        {"from":"C", "to":"E"},
-        {"from":"D", "to":"E"},
+        {"from":"C", "to":"Z"},
+        {"from":"D", "to":"Z"},
         {"from":"E", "to":"F"},
         {"from":"Y", "to": "A"},   // 起始PC -> 路由
         {"from":"F", "to": "Z"}    // 路由 -> 接受PC
