@@ -325,8 +325,6 @@
                 for(var j = 0; j < this.route_edge[arr[0]].length; j++){
                     if(this.route_edge[arr[0]][j].get_to() == arr[1]){
                         if(this.route_edge[arr[0]][j].get_weight() == this.limit_packet){  // 包阻塞 被滞留  //防止级联阻塞
-                            
-                            
                             this.congestion_packets.push(this.packet_pos[i]);
 
                             for(var k = 0; k < this.route_edge[tmp_arr[0]].length; k++){
@@ -395,10 +393,10 @@
                 /* 循环完毕都找不到 则直接退出即可 */
                 if(find_ == false){
                     //阻塞住
-                    cur_new_pack.edge1 = cur_new_pack.edge2 = 1;
+                    cur_new_pack.edge1 = cur_new_pack.edge2 = start;
                     var congest_pack = hardCopy(cur_new_pack);
                     // 打印阻塞的方向
-                    congest_pack.edge2 = this.route_table[1].get_route(6); // 
+                    congest_pack.edge2 = this.route_table[this.start].get_route(this.terminal);//this.route_table[1].get_route(6); // 
                     this.congestion_packets.push(congest_pack);
                 }
                 //     break;

@@ -388,6 +388,7 @@ async function pack_move_anime(vis_g, pack_id, vis_from, vis_to, speed = 500){
 
     var from_route;
 
+    console.log("vis_from: " , vis_from)
     $("rect.router").each(function(){
         
         if($(this).attr("id") == "router-" + String.fromCharCode(64 + vis_from)){
@@ -401,12 +402,14 @@ async function pack_move_anime(vis_g, pack_id, vis_from, vis_to, speed = 500){
     //console.log(vis_from, "rect#router-" + String.fromCharCode(64 + vis_from)+ ".router");
 
     var pack_edge_name1 = "edge_"+vis_from+"-"+vis_to;
-
     var pack_edge_name2 = "edge_"+vis_to+"-"+vis_from;
 
 
     console.log("rect." + pack_edge_name1, '$("rect." + pack_edge_name1)', $("rect." + pack_edge_name1));
     console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
+
+    console.log("rect." + pack_edge_name2, '$("rect." + pack_edge_name2)', $("rect." + pack_edge_name2));
+
 
     var to_pack_edge = undefined;
 
